@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <!-- Parte superior (Magenta) -->
+  <path d="M 100,10 L 177.94,55 L 142.00,75.75 L 100,51.5 L 58.00,75.75 L 22.06,55 Z" fill="#B8144D" />
+  
+  <!-- Parte inferior (Navy) -->
+  <path d="M 22.06,55 L 58.00,75.75 L 58.00,124.25 L 100,148.5 L 142.00,124.25 L 142.00,75.75 L 177.94,55 L 177.94,145 L 100,190 L 22.06,145 Z" fill="#09142E" />
+</svg>
