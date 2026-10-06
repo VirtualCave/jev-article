@@ -1,8 +1,9 @@
+import { MODEL_PILOTS, PILOT_LABEL } from "@/lib/ai/pilots";
 import { formatMs, formatUsd } from "@/lib/ai/pricing";
 import { maxSustainableRate, percentile } from "@/lib/bench/metrics";
 import type { ChatMessage } from "@/lib/data/chat";
 
-export const PILOTS = ["laya", "jev", "human"] as const;
+export const PILOTS = [...MODEL_PILOTS, "human"] as const;
 export type Pilot = (typeof PILOTS)[number];
 export const RATE_KEYS = [1, 2, 4, 8, 12, 20, 30, 40] as const;
 export const WINDOW_MS = 4000;
@@ -13,7 +14,8 @@ export const MAX_CHAT_LINES = 140;
 export const TRAIL_MAX = 80;
 export const SATURATED_QUEUE = 50;
 export const SATURATED_P95_MS = 5000;
-export const CONCURRENCY: Record<Pilot, number> = { laya: 1, jev: 8, human: 1 };
+/** Hosted models take parallel calls; the local Laya sidecar and the person handle one message at a time. */
+export const CONCURRENCY: Record<Pilot, number> = { jev: 8, clef: 8, "clef-flash": 8, laya: 1, human: 1 };
 
 export const mustBlock = (item: ChatMessage) => item.toxic || item.spam;
 
@@ -157,18 +159,16 @@ export function visibleLines(lines: Map<string, ChatLine>, now: number) {
 }
 
 export function pilotLabel(pilot: Pilot) {
-  if (pilot === "human") return "una persona";
-  return pilot === "jev" ? "Jev" : "Laya";
+  return pilot === "human" ? "una persona" : PILOT_LABEL[pilot];
 }
 
 export function pilotShort(pilot: Pilot) {
-  if (pilot === "human") return "Persona";
-  return pilot === "jev" ? "Jev" : "Laya";
+  return pilot === "human" ? "Persona" : PILOT_LABEL[pilot];
 }
 
 export function removedLabel(pilot: Pilot) {
   if (pilot === "human") return "<mensaje eliminado por el moderador>";
-  return `<mensaje eliminado por ${pilot === "jev" ? "Jev" : "Laya"}>`;
+  return `<mensaje eliminado por ${PILOT_LABEL[pilot]}>`;
 }
 
 export function exampleFrom(item: ChatMessage, kind: ErrorKind): ErrorExample {

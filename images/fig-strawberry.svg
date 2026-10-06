@@ -1,7 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 196" width="760" height="196" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-label="Strawberry: acierto al contar letras según cómo se pregunte">
-<rect width="760" height="196" rx="12" fill="#fcfcfb"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 386" width="680" height="386" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-label="Strawberry: acierto al contar letras según cómo se pregunte">
+<rect width="680" height="386" rx="12" fill="#fcfcfb"/>
 <text x="24" y="30" font-size="16" fill="#0b0b0b" text-anchor="start" font-weight="600">Strawberry: acierto al contar letras según cómo se pregunte</text>
 <text x="24" y="48" font-size="12" fill="#52514e" text-anchor="start" font-weight="400">8 palabras × 5 rondas por estrategia (40 intentos). Mediana de tiempo de pared y de tokens de entrada.</text>
-
-<text x="210" y="97" font-size="12" fill="#0b0b0b" text-anchor="end" font-weight="400">1 consulta de recuento</text><path d="M220,84 H366 Q370,84 370,88 V98 Q370,102 366,102 H220 Z" fill="#B8144D"/><text x="376" y="97" font-size="11" fill="#0b0b0b" text-anchor="start" font-weight="400">50% · 232 ms · 379 tokens</text><text x="210" y="129" font-size="12" fill="#0b0b0b" text-anchor="end" font-weight="400">1 consulta con N preguntas</text><path d="M220,116 H388.5 Q392.5,116 392.5,120 V130 Q392.5,134 388.5,134 H220 Z" fill="#B8144D"/><text x="398.5" y="129" font-size="11" fill="#0b0b0b" text-anchor="start" font-weight="400">57% · 224 ms · 809 tokens</text><text x="210" y="161" font-size="12" fill="#0b0b0b" text-anchor="end" font-weight="400">N consultas simultáneas</text><path d="M220,148 H516 Q520,148 520,152 V162 Q520,166 516,166 H220 Z" fill="#B8144D"/><text x="526" y="161" font-size="11" fill="#0b0b0b" text-anchor="start" font-weight="400">100% · 267 ms · 2691 tokens</text>
+<g transform="translate(24,60)"><rect width="12" height="12" rx="3" fill="#B8144D"/><text x="18" y="10" font-size="12" fill="#52514e" text-anchor="start" font-weight="400">Jev 1.13</text></g>
+<g transform="translate(107.6,60)"><rect width="12" height="12" rx="3" fill="#D9631E"/><text x="18" y="10" font-size="12" fill="#52514e" text-anchor="start" font-weight="400">Clef (27B)</text></g>
+<g transform="translate(203.6,60)"><rect width="12" height="12" rx="3" fill="#1F8FA6"/><text x="18" y="10" font-size="12" fill="#52514e" text-anchor="start" font-weight="400">Clef-Flash (9B)</text></g>
+<g transform="translate(330.6,60)"><rect width="12" height="12" rx="3" fill="#2F4F96"/><text x="18" y="10" font-size="12" fill="#52514e" text-anchor="start" font-weight="400">Laya (local)</text></g>
+<text x="190" y="136" font-size="12" fill="#0b0b0b" text-anchor="end" font-weight="400">1 consulta de recuento</text>
+<path d="M200,96 H296 Q300,96 300,100 V106 Q300,110 296,110 H200 Z" fill="#B8144D"/>
+<text x="306" y="107" font-size="11" fill="#0b0b0b" text-anchor="start" font-weight="400">50% · 254 ms · 379 tok</text>
+<rect x="200" y="116" width="1.5" height="14" fill="#D9631E"/>
+<text x="206" y="127" font-size="11" fill="#0b0b0b" text-anchor="start" font-weight="400">0% · 502 ms · 212 tok</text>
+<path d="M200,136 H246 Q250,136 250,140 V146 Q250,150 246,150 H200 Z" fill="#1F8FA6"/>
+<text x="256" y="147" font-size="11" fill="#0b0b0b" text-anchor="start" font-weight="400">25% · 430 ms · 212 tok</text>
+<rect x="200" y="156" width="1.5" height="14" fill="#2F4F96"/>
+<text x="206" y="167" font-size="11" fill="#0b0b0b" text-anchor="start" font-weight="400">0% · 29 ms · 59 tok</text>
+<text x="190" y="228" font-size="12" fill="#0b0b0b" text-anchor="end" font-weight="400">1 consulta con N preguntas</text>
+<path d="M200,188 H321 Q325,188 325,192 V198 Q325,202 321,202 H200 Z" fill="#B8144D"/>
+<text x="331" y="199" font-size="11" fill="#0b0b0b" text-anchor="start" font-weight="400">62% · 255 ms · 809 tok</text>
+<path d="M200,208 H396 Q400,208 400,212 V218 Q400,222 396,222 H200 Z" fill="#D9631E"/>
+<text x="406" y="219" font-size="11" fill="#0b0b0b" text-anchor="start" font-weight="400">100% · 563 ms · 932 tok</text>
+<path d="M200,228 H396 Q400,228 400,232 V238 Q400,242 396,242 H200 Z" fill="#1F8FA6"/>
+<text x="406" y="239" font-size="11" fill="#0b0b0b" text-anchor="start" font-weight="400">100% · 497 ms · 932 tok</text>
+<path d="M200,248 H221 Q225,248 225,252 V258 Q225,262 221,262 H200 Z" fill="#2F4F96"/>
+<text x="231" y="259" font-size="11" fill="#0b0b0b" text-anchor="start" font-weight="400">12% · 94 ms · 522 tok</text>
+<text x="190" y="320" font-size="12" fill="#0b0b0b" text-anchor="end" font-weight="400">N consultas simultáneas</text>
+<path d="M200,280 H396 Q400,280 400,284 V290 Q400,294 396,294 H200 Z" fill="#B8144D"/>
+<text x="406" y="291" font-size="11" fill="#0b0b0b" text-anchor="start" font-weight="400">100% · 291 ms · 2.691 tok</text>
+<path d="M200,300 H371 Q375,300 375,304 V310 Q375,314 371,314 H200 Z" fill="#D9631E"/>
+<text x="381" y="311" font-size="11" fill="#0b0b0b" text-anchor="start" font-weight="400">88% · 924 ms · 1.449 tok</text>
+<path d="M200,320 H396 Q400,320 400,324 V330 Q400,334 396,334 H200 Z" fill="#1F8FA6"/>
+<text x="406" y="331" font-size="11" fill="#0b0b0b" text-anchor="start" font-weight="400">100% · 872 ms · 1.449 tok</text>
+<path d="M200,340 H371 Q375,340 375,344 V350 Q375,354 371,354 H200 Z" fill="#2F4F96"/>
+<text x="381" y="351" font-size="11" fill="#0b0b0b" text-anchor="start" font-weight="400">88% · 239 ms · 486 tok</text>
 </svg>

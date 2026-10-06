@@ -1,8 +1,6 @@
-import { choice, noul, score } from "@typesafe-ai/sdk";
 import { packAnswers } from "@/lib/ai/http";
-import { jevCostUsd } from "@/lib/ai/pricing";
-import { apiError, jevClient } from "@/lib/ai/typesafe";
-import { predictLaya } from "@/lib/ai/laya";
+import { askModel } from "@/lib/ai/models";
+import { isModelPilot } from "@/lib/ai/pilots";
 import type { DecisionQuestions, DecisionState } from "@/lib/ai/questions";
 
 export const runtime = "nodejs";
@@ -30,27 +28,12 @@ function valid(body: unknown): body is { state: DecisionState; questions: Decisi
 
 export async function POST(request: Request, { params }: { params: Promise<{ player: string }> }) {
   const { player } = await params;
-  if (player !== "jev" && player !== "laya") return Response.json({ ok: false, code: "bad_request", error: "Piloto inválido." }, { status: 400 });
+  if (!isModelPilot(player)) return Response.json({ ok: false, code: "bad_request", error: "Piloto inválido." }, { status: 400 });
   let body: unknown;
   try { body = await request.json(); } catch { return Response.json({ ok: false, code: "bad_request", error: "JSON inválido." }, { status: 400 }); }
   if (!valid(body)) return Response.json({ ok: false, code: "bad_request", error: "Petición de Tetris inválida." }, { status: 400 });
   const started = performance.now();
-  if (player === "laya") {
-    const result = await predictLaya(body.state, body.questions, 20000);
-    if (!result.ok) return Response.json(result, { status: result.code === "offline" ? 503 : 502 });
-    return Response.json({ ok: true, model: result.model, answers: packAnswers(result.answers), usage: result.usage, latencyMs: performance.now() - started });
-  }
-  const client = jevClient("tetris");
-  if (!client) return Response.json({ ok: false, code: "auth", error: "Añade TYPESAFE_API_KEY en .env.local y reinicia." }, { status: 401 });
-  const q = body.questions;
-  try {
-    const response = await client.systemOne({ state: body.state, questions: {
-      playable_well: choice(q.playable_well.instructions, q.playable_well.criteria),
-      stack_danger: score(q.stack_danger.instructions, q.stack_danger.criteria),
-      clear_is_available: noul(q.clear_is_available.instructions, q.clear_is_available.criteria),
-      burial_is_avoidable: noul(q.burial_is_avoidable.instructions, q.burial_is_avoidable.criteria),
-    } });
-    const input = response.usage?.input_tokens ?? 0;
-    return Response.json({ ok: true, model: response.model, answers: packAnswers(response.answers as Record<string, unknown>), usage: { input_tokens: input, output_tokens: response.usage?.output_tokens ?? 0, costUsd: jevCostUsd(input) }, latencyMs: performance.now() - started });
-  } catch (error) { const result = apiError(error); return Response.json(result, { status: result.code === "auth" ? 401 : 502 }); }
+  const reply = await askModel(player, body.state, body.questions, "tetris");
+  if (!reply.ok) return Response.json(reply, { status: reply.code === "auth" ? 401 : reply.code === "offline" ? 503 : 502 });
+  return Response.json({ ok: true, model: reply.model, answers: packAnswers(reply.answers), usage: reply.usage, latencyMs: performance.now() - started });
 }

@@ -5,7 +5,7 @@
   --line: rgb(255 255 255 / .09); --line-strong: rgb(255 255 255 / .17);
   --ink: #eef1f8; --muted: #a0a9c0; --faint: #69738f;
   --accent: #b8144d; --accent-hi: #e0336f; --accent-soft: rgb(184 20 77 / .14);
-  --laya: #9aa5ff; --ok: #3dd68c; --warn: #f2b544; --bad: #ff5c7a;
+  --laya: #9aa5ff; --clef: #f6821f; --clef-flash: #46c8e8; --ok: #3dd68c; --warn: #f2b544; --bad: #ff5c7a;
   --p-i: #58b7c9; --p-o: #d9b34e; --p-t: #ae8fd3; --p-s: #62b891;
   --p-z: #d57480; --p-j: #7194d5; --p-l: #d99868;
 }
@@ -15,7 +15,7 @@
   --color-bg: var(--bg); --color-bg-elev: var(--surface-2); --color-surface: var(--surface);
   --color-ink: var(--ink); --color-muted: var(--muted); --color-faint: var(--faint);
   --color-line: var(--line); --color-accent: var(--accent); --color-accent-hi: var(--accent-hi);
-  --color-accent-fg: #fff; --color-laya: var(--laya);
+  --color-accent-fg: #fff; --color-laya: var(--laya); --color-clef: var(--clef); --color-clef-flash: var(--clef-flash);
   --color-ok: var(--ok); --color-warn: var(--warn); --color-bad: var(--bad);
 }
 

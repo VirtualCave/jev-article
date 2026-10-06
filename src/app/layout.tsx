@@ -7,8 +7,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: { default: "Jev Benchmark", template: "%s · Jev Benchmark" },
-  description: "Nueve pruebas para medir cómo deciden Jev, Laya y una persona: juegos en tiempo real y decisiones sobre datos etiquetados.",
-  openGraph: { title: "Jev Benchmark", description: "Nueve pruebas para medir decisiones de Jev, Laya y una persona." },
+  description: "Ocho pruebas para medir cómo deciden Jev, Clef, Clef-Flash, Laya y una persona: juegos en tiempo real y decisiones sobre datos etiquetados.",
+  openGraph: { title: "Jev Benchmark", description: "Ocho pruebas para medir decisiones de Jev, Clef, Clef-Flash, Laya y una persona." },
   icons: { icon: "/brand/jev-logo.svg" },
 };
 

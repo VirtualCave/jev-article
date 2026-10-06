@@ -1,12 +1,9 @@
 "use client";
 
-import { buildSummary, type Pilot, type Report } from "./model";
+import { byPilot, PILOT_COLOR, PILOT_LABEL } from "@/lib/ai/pilots";
+import { buildSummary, PILOTS, type Pilot, type Report } from "./model";
 
-const WHO: Record<Pilot, { label: string; color: string }> = {
-  jev: { label: "Jev", color: "var(--accent-hi)" },
-  laya: { label: "Laya", color: "var(--laya)" },
-  human: { label: "Persona", color: "var(--warn)" },
-};
+const WHO: Record<Pilot, { label: string; color: string }> = { ...byPilot(pilot => ({ label: PILOT_LABEL[pilot], color: PILOT_COLOR[pilot] })), human: { label: "Persona", color: "var(--warn)" } };
 
 function Bar({ label, value, total, tone }: { label: string; value: number; total: number; tone: string }) {
   return (
@@ -38,8 +35,8 @@ export function RunSummary({ reports, last, running }: { reports: Partial<Record
           )}
         </section>
       )}
-      <div className="grid gap-3 sm:grid-cols-3">
-        {(["jev", "laya", "human"] as const).map(pilot => {
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        {PILOTS.map(pilot => {
           const result = reports[pilot];
           const errors = result ? result.falseBlocks + result.slipped : 0;
           const acc = result?.completed ? Math.round(result.correct / result.completed * 100) : null;

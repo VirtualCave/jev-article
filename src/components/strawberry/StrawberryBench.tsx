@@ -4,6 +4,7 @@ import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } fro
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ResultsPanel } from "@/components/strawberry/ResultsPanel";
 import { useHealth } from "@/hooks/useHealth";
+import { MODEL_PILOTS, PILOT_COLOR, PILOT_LABEL, type ModelPilot } from "@/lib/ai/pilots";
 import { formatMs, formatUsd } from "@/lib/ai/pricing";
 import { addHistory } from "@/lib/history";
 import { buildVerdict, summarize } from "@/lib/strawberry/aggregate";
@@ -21,6 +22,7 @@ export function StrawberryBench() {
   const [word, setWord] = useState("raspberry");
   const [letter, setLetter] = useState("r");
   const [rounds, setRounds] = useState(3);
+  const [pilot, setPilot] = useState<ModelPilot>("jev");
   const [samples, setSamples] = useState<Record<Mode, BenchResult[]>>(EMPTY);
   const [active, setActive] = useState<Mode | null>(null);
   const [round, setRound] = useState(0);
@@ -54,7 +56,7 @@ export function StrawberryBench() {
     setSamples({ single: [], batch: [], fanout: [] }); setReplay(new Set()); setError(""); setCopied(false); setBusy(true); setRound(0);
     const collected = { single: [], batch: [], fanout: [] } as Record<Mode, BenchResult[]>;
     const ask = async (mode: Mode | "warmup") => {
-      const response = await fetch("/api/strawberry", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mode, ...input }), signal: controller.signal });
+      const response = await fetch("/api/strawberry", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mode, pilot, ...input }), signal: controller.signal });
       const data = await response.json() as BenchResult | BenchError;
       if (!data.ok) throw new Error(data.error);
       return data as BenchResult;
@@ -82,7 +84,7 @@ export function StrawberryBench() {
         }
       }
       const single = summarize(collected.single), batch = summarize(collected.batch);
-      addHistory({ kind: "strawberry", label: `${input.word} / ${input.letter}`, detail: `${(batch.medianMs / Math.max(1, single.medianMs)).toFixed(2)}× · ${rounds} rondas` });
+      addHistory({ kind: "strawberry", label: `${PILOT_LABEL[pilot]} · ${input.word} / ${input.letter}`, detail: `${(batch.medianMs / Math.max(1, single.medianMs)).toFixed(2)}× · ${rounds} rondas` });
     } catch (cause) { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "El benchmark se interrumpió."); }
     finally { setActive(null); setBusy(false); abortRef.current = null; }
   };
@@ -92,18 +94,18 @@ export function StrawberryBench() {
 
   return <div>
     <section className="panel overflow-hidden p-5 sm:p-8">
-      <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="eyebrow">La palabra bajo el microscopio</p><h2 className="mt-2 text-2xl font-semibold tracking-tight">¿Cuántas veces aparece la letra?</h2></div><span className="metric rounded-md border border-line px-3 py-1.5 text-xs text-muted">JEV / SYSTEM ONE</span></div>
+      <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="eyebrow">La palabra bajo el microscopio</p><h2 className="mt-2 text-2xl font-semibold tracking-tight">¿Cuántas veces aparece la letra?</h2></div><div className="flex rounded-md border border-line p-1" role="tablist" aria-label="Modelo">{MODEL_PILOTS.map(id => <button key={id} type="button" role="tab" aria-selected={pilot === id} disabled={busy || !health[id].ok} title={health[id].detail} onClick={() => { setPilot(id); setSamples(EMPTY); setError(""); }} className={`metric rounded px-2.5 py-1 text-xs ${pilot === id ? "bg-white/10" : "text-muted"}`} style={pilot === id ? { color: PILOT_COLOR[id] } : undefined}>{PILOT_LABEL[id].toUpperCase()}</button>)}</div></div>
       <WordTiles word={input?.word || word.toLowerCase().slice(0, 24)} letter={input?.letter || letter} />
       <div className="mt-8 grid gap-3 sm:grid-cols-[1fr_8rem_8rem_auto] sm:items-end">
         <label className="text-xs text-muted">Palabra<input className="input mt-2" value={word} maxLength={24} disabled={busy} onChange={event => setWord(event.target.value)} aria-invalid={!input} /></label>
         <label className="text-xs text-muted">Letra<input className="input mt-2" value={letter} maxLength={1} disabled={busy} onChange={event => setLetter(event.target.value)} aria-invalid={!input} /></label>
         <label className="text-xs text-muted">Rondas<select className="input mt-2" value={rounds} disabled={busy} onChange={event => setRounds(Number(event.target.value))}><option value={1}>1</option><option value={3}>3</option><option value={5}>5</option></select></label>
-        <button className="btn btn-primary" disabled={!input || busy || !health.jev.ok} onClick={run}>{busy ? `Ronda ${round}/${rounds}` : "Ejecutar benchmark"}</button>
+        <button className="btn btn-primary" disabled={!input || busy || !health[pilot].ok} onClick={run}>{busy ? `Ronda ${round}/${rounds}` : "Ejecutar benchmark"}</button>
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted">Probar con:{PRESETS.map(([w, l]) => <button key={w} type="button" disabled={busy} onClick={() => { setWord(w); setLetter(l); }} className={`metric rounded-md border px-2.5 py-1 ${input?.word === w && input.letter === l ? "border-accent-hi text-ink" : "border-line hover:text-ink"}`}>{w} / {l}</button>)}</div>
       <p className="mt-2 text-xs text-muted">Con jev-1.13 la consulta única falla raspberry, bookkeeper, parallel y bubblegum, y acierta strawberry. Las N consultas simultáneas aciertan las cinco.</p>
       {!input && <p role="alert" className="mt-3 text-sm text-bad">Escribe una palabra de 1–24 letras y una sola letra objetivo.</p>}
-      {!health.jev.ok && <p className="mt-3 text-sm text-warn">{health.jev.detail}</p>}
+      {!health[pilot].ok && <p className="mt-3 text-sm text-warn">{PILOT_LABEL[pilot]}: {health[pilot].detail}</p>}
       {error && <p role="alert" className="mt-3 text-sm text-bad">{error}</p>}
       <p className="mt-4 text-xs text-muted">Cada ronda rota el orden de los tres carriles. Las peticiones de un carril terminan antes de empezar el siguiente.</p>
     </section>

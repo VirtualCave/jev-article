@@ -72,14 +72,16 @@ export function percentile(values: number[], p: number) {
   return sorted[low] + (sorted[high] - sorted[low]) * (rank - low);
 }
 
-export type CascadeItem = { laya: Prediction; jev?: Prediction; layaMs: number; jevMs?: number; jevCostUsd?: number };
+/** First stage → Jev → person. Every ticket pays the first stage; only the ones it doubts also pay Jev. */
+export type CascadeItem = { first: Prediction; jev?: Prediction; firstMs: number; jevMs?: number; firstCostUsd?: number; jevCostUsd?: number };
 export function cascade(items: CascadeItem[], thresholdA: number, thresholdB: number) {
-  const counts = { laya: 0, jev: 0, human: 0, correct: 0, automated: 0, costUsd: 0, latencyMs: 0 };
+  const counts = { first: 0, jev: 0, human: 0, correct: 0, automated: 0, costUsd: 0, latencyMs: 0 };
   for (const item of items) {
-    counts.latencyMs += item.layaMs;
-    if (item.laya.confidence >= thresholdA) {
-      counts.laya++; counts.automated++;
-      if (item.laya.predicted === item.laya.truth) counts.correct++;
+    counts.latencyMs += item.firstMs;
+    counts.costUsd += item.firstCostUsd ?? 0;
+    if (item.first.confidence >= thresholdA) {
+      counts.first++; counts.automated++;
+      if (item.first.predicted === item.first.truth) counts.correct++;
     } else if (item.jev) {
       counts.latencyMs += item.jevMs ?? 0;
       counts.costUsd += item.jevCostUsd ?? 0;

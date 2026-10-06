@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useHealth } from "@/hooks/useHealth";
 import { useBandejaRun, type Pilot } from "@/hooks/useBandejaRun";
+import { byPilot, MODEL_PILOTS, PILOT_COLOR, PILOT_LABEL } from "@/lib/ai/pilots";
 import { formatMs, formatUsd } from "@/lib/ai/pricing";
 import { addHistory } from "@/lib/history";
 import { tickets } from "@/lib/data/tickets";
@@ -33,14 +34,13 @@ type Folder = Pilot | "human";
 function RunButtons({ ids, running, onRun, onCancel }: { ids: string[]; running: { pilot: Pilot; done: number; total: number } | null; onRun: (pilot: Pilot, ids: string[]) => void; onCancel: () => void }) {
   const health = useHealth();
   return <div className="flex flex-wrap items-center gap-3">
-    {(["laya", "jev"] as const).map(pilot => <button key={pilot} type="button" className={`btn ${pilot === "jev" ? "btn-primary" : ""}`} disabled={!!running || !health[pilot].ok} onClick={() => onRun(pilot, ids)}>Medir {pilot === "jev" ? "Jev" : "Laya"}</button>)}
+    {MODEL_PILOTS.map(pilot => <button key={pilot} type="button" className={`btn ${pilot === "jev" ? "btn-primary" : ""}`} disabled={!!running || !health[pilot].ok} onClick={() => onRun(pilot, ids)}>Medir {PILOT_LABEL[pilot]}</button>)}
     {running && <>
       <span className="metric text-sm text-muted" role="status">{running.pilot}: {running.done}/{running.total}</span>
       <div className="h-1.5 w-36 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-valuemin={0} aria-valuemax={running.total} aria-valuenow={running.done}><div className="h-full bg-accent-hi" style={{ width: `${running.total ? running.done / running.total * 100 : 0}%` }} /></div>
       <button type="button" className="btn" onClick={onCancel}>Cancelar</button>
     </>}
-    {!health.jev.ok && <span className="text-xs text-warn">Jev: {health.jev.detail}</span>}
-    {!health.laya.ok && <span className="text-xs text-warn">Laya: {health.laya.detail}</span>}
+    {MODEL_PILOTS.filter(pilot => !health[pilot].ok).map(pilot => <span key={pilot} className="text-xs text-warn">{PILOT_LABEL[pilot]}: {health[pilot].detail}</span>)}
   </div>;
 }
 
@@ -86,7 +86,7 @@ function RecapCard({ title, tone, cases, onOpen }: { title: string; tone: "ok" |
 }
 
 function ResultsTable({ stats, majority }: { stats: Record<Folder, PilotStats>; majority: ReturnType<typeof departmentBaselines> }) {
-  const rows = ([["jev", "Jev", "var(--accent-hi)"], ["laya", "Laya", "var(--laya)"], ["human", "Persona", "var(--warn)"]] as const).filter(([id]) => stats[id].n > 0);
+  const rows = ([...MODEL_PILOTS.map(pilot => [pilot, PILOT_LABEL[pilot], PILOT_COLOR[pilot]] as const), ["human", "Persona", "var(--warn)"] as const] as const).filter(([id]) => stats[id].n > 0);
   if (!rows.length) return null;
   const fields = [["department", "Departamento"], ["urgency", "Urgencia"], ["churn", "Riesgo de baja"]] as const;
   const best = Object.fromEntries(fields.map(([key]) => [key, Math.max(...rows.map(([id]) => stats[id][key]))])) as Record<(typeof fields)[number][0], number>;
@@ -142,7 +142,7 @@ function LiveCounters({ stats, folder }: { stats: PilotStats; folder: Folder }) 
       { label: "Urgencia", value: pct(stats.urgency, ready), note: ready ? `error ${stats.urgencyError.toFixed(2)}` : "sin datos" },
       { label: "Baja", value: pct(stats.churn, ready), note: ready ? `${Math.round(stats.churn * stats.n)} aciertos` : "sin datos" },
       { label: "Tiempo / ticket", value: ready ? formatMs(stats.ms) : "—", note: folder === "human" ? "tres teclas" : "una llamada" },
-      { label: "Coste / 1.000", value: folder === "human" ? "n/e" : ready ? formatUsd(stats.cost) : "—", note: folder === "laya" ? "sin tokens cobrados" : folder === "human" ? "no estimado" : "solo entrada Jev" },
+      { label: "Coste / 1.000", value: folder === "human" ? "n/e" : ready ? formatUsd(stats.cost) : "—", note: folder === "laya" ? "sin tokens cobrados" : folder === "human" ? "no estimado" : folder === "jev" ? "solo entrada Jev" : "facturado por OpenRouter" },
     ].map(item => <div key={item.label} className="bg-surface px-4 py-3"><p className="text-[11px] text-muted">{item.label}</p><p className="metric mt-1 text-xl">{item.value}</p><p className="mt-0.5 text-[11px] text-faint">{item.note}</p></div>)}
   </div>;
 }
@@ -270,14 +270,10 @@ export function BandejaBench() {
       const row = verdictFromResult(item, results[pilot][item.id]);
       return row ? [row] : [];
     });
-    return { laya: of("laya"), jev: of("jev"), human: of("human") };
+    return { ...byPilot(pilot => of(pilot)), human: of("human") };
   }, [human, results]);
 
-  const stats = {
-    laya: statsFromVerdicts(verdicts.laya),
-    jev: statsFromVerdicts(verdicts.jev),
-    human: statsFromVerdicts(verdicts.human),
-  };
+  const stats: Record<Folder, PilotStats> = { ...byPilot(pilot => statsFromVerdicts(verdicts[pilot])), human: statsFromVerdicts(verdicts.human) };
 
   const liveIds = useMemo(() => {
     if (folder === "human") return tickets.map(item => item.id).filter(id => human[id]);
@@ -314,11 +310,7 @@ export function BandejaBench() {
       <LiveCounters stats={stats[folder]} folder={folder} />
       <div className="grid lg:grid-cols-[12.5rem_1fr]">
         <nav aria-label="Pilotos" className="flex gap-1 overflow-x-auto border-b border-line p-2 lg:flex-col lg:border-b-0 lg:border-r">
-          {([
-            ["jev", "Jev", stats.jev.n],
-            ["laya", "Laya", stats.laya.n],
-            ["human", "Persona", stats.human.n],
-          ] as const).map(([id, label, n]) => <button key={id} type="button" aria-pressed={folder === id} onClick={() => setFolder(id)} className={`flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm ${folder === id ? "bg-white/8 text-ink" : "text-muted hover:bg-white/5 hover:text-ink"}`}>
+          {([...MODEL_PILOTS.map(pilot => [pilot, PILOT_LABEL[pilot], stats[pilot].n] as const), ["human", "Persona", stats.human.n] as const]).map(([id, label, n]) => <button key={id} type="button" aria-pressed={folder === id} onClick={() => setFolder(id)} className={`flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm ${folder === id ? "bg-white/8 text-ink" : "text-muted hover:bg-white/5 hover:text-ink"}`}>
             <span className="flex items-center gap-2">{id === "human" ? <User size={16} /> : <Tray size={16} />}{label}</span>
             <span className="metric text-xs">{ready || id === "human" ? n : "…"}</span>
           </button>)}
@@ -349,7 +341,7 @@ export function BandejaBench() {
               })}
             </AnimatePresence>
             {!liveIds.length && folder !== "human" && <div className="grid place-items-center px-6 py-16 text-center">
-              {progress?.pilot === folder ? <p className="flex items-center gap-2 text-sm text-muted"><CircleNotch size={18} className={reduce ? "" : "animate-spin"} /> Esperando el primer correo…</p> : !ready ? <p className="flex items-center gap-2 text-sm text-muted"><CircleNotch size={18} className={reduce ? "" : "animate-spin"} /> Cargando la carpeta…</p> : <p className="max-w-sm text-sm text-muted">La carpeta está vacía. Mide {folder === "jev" ? "Jev" : "Laya"} para ver cómo van llegando los 60 tickets, con sellos de departamento, urgencia y baja.</p>}
+              {progress?.pilot === folder ? <p className="flex items-center gap-2 text-sm text-muted"><CircleNotch size={18} className={reduce ? "" : "animate-spin"} /> Esperando el primer correo…</p> : !ready ? <p className="flex items-center gap-2 text-sm text-muted"><CircleNotch size={18} className={reduce ? "" : "animate-spin"} /> Cargando la carpeta…</p> : <p className="max-w-sm text-sm text-muted">La carpeta está vacía. Mide {PILOT_LABEL[folder]} para ver cómo van llegando los 60 tickets, con sellos de departamento, urgencia y baja.</p>}
             </div>}
             {folder === "human" && !liveIds.length && ticket && <p className="px-4 py-8 text-center text-sm text-muted">Los correos etiquetados irán apareciendo debajo.</p>}
           </div>
@@ -357,10 +349,10 @@ export function BandejaBench() {
       </div>
     </section>
 
-    {(["laya", "jev", "human"] as const).map(pilot => {
+    {([...MODEL_PILOTS, "human"] as const).map(pilot => {
       const s = stats[pilot];
       if (s.n < tickets.length) return null;
-      const name = pilot === "human" ? "La persona" : pilot === "jev" ? "Jev" : "Laya";
+      const name = pilot === "human" ? "La persona" : PILOT_LABEL[pilot];
       const humanStats = pilot === "human" ? null : stats.human.n ? stats.human : null;
       const cases = bandejaCases(verdicts[pilot]);
       const compare = bandejaCompare(s, majority, humanStats);

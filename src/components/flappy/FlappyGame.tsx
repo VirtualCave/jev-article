@@ -3,6 +3,7 @@
 import { Pause, Play } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import { useHealth } from "@/hooks/useHealth";
+import { MODEL_PILOTS, PILOT_COLOR, PILOT_LABEL } from "@/lib/ai/pilots";
 import { formatMs, formatUsd } from "@/lib/ai/pricing";
 import { FlappyEngine, type Decision, type Pilot, W, H } from "@/lib/flappy/engine";
 import { renderFlappy } from "@/lib/flappy/render";
@@ -11,8 +12,9 @@ import { addHistory } from "@/lib/history";
 type Reply = { ok: true; action: "flap" | "glide"; reason: string; latencyMs: number; answers: { relative_to_gap?: { probabilities?: Record<string, number> } }; usage: { input_tokens: number; costUsd?: number }; model: string; state: string } | { ok: false; code: string; error: string };
 type View = { status: FlappyEngine["status"]; score: number; n: number; tokens: number; costUsd: number; elapsed: number; flaps: number; avgMs: number; log: Decision[] };
 const snapshot = (engine: FlappyEngine): View => ({ status: engine.status, score: engine.score, n: engine.match.n, tokens: engine.match.tokens, costUsd: engine.match.costUsd, elapsed: engine.match.elapsed, flaps: engine.match.flaps, avgMs: engine.match.latencies.reduce((a, b) => a + b, 0) / Math.max(1, engine.match.latencies.length), log: [...engine.match.log] });
-const BEST_KEY: Record<Pilot, string> = { human: "flappy-best-human", laya: "flappy-best-laya", jev: "flappy-best-jev" };
-const LABEL: Record<Pilot, string> = { human: "Humano", laya: "Laya", jev: "Jev" };
+const PILOTS: Pilot[] = ["human", ...MODEL_PILOTS];
+const LABEL: Record<Pilot, string> = { human: "Humano", ...PILOT_LABEL };
+const zeros = () => Object.fromEntries(PILOTS.map(key => [key, 0])) as Record<Pilot, number>;
 
 export function FlappyGame() {
   const health = useHealth();
@@ -28,10 +30,10 @@ export function FlappyGame() {
   const runIdRef = useRef(0);
   const controllerRef = useRef<AbortController | null>(null);
   const audioRef = useRef<AudioContext | null>(null);
-  const bestRef = useRef<Record<Pilot, number>>({ human: 0, laya: 0, jev: 0 });
+  const bestRef = useRef<Record<Pilot, number>>(zeros());
   const [pilot, setPilot] = useState<Pilot>("human");
   const [paused, setPaused] = useState(false);
-  const [best, setBest] = useState<Record<Pilot, number>>({ human: 0, laya: 0, jev: 0 });
+  const [best, setBest] = useState<Record<Pilot, number>>(zeros);
   const [view, setView] = useState<View>(() => snapshot(initialEngine));
   const [last, setLast] = useState<(Decision & { model: string; tokens: number }) | null>(null);
   const [notice, setNotice] = useState("");
@@ -39,8 +41,8 @@ export function FlappyGame() {
 
   useEffect(() => { healthRef.current = health; }, [health]);
   useEffect(() => {
-    const loaded = { human: 0, laya: 0, jev: 0 } as Record<Pilot, number>;
-    (Object.keys(loaded) as Pilot[]).forEach(key => { loaded[key] = Number(localStorage.getItem(BEST_KEY[key]) || 0); });
+    const loaded = zeros();
+    PILOTS.forEach(key => { loaded[key] = Number(localStorage.getItem(`flappy-best-${key}`) || 0); });
     const id = requestAnimationFrame(() => { bestRef.current = loaded; setBest(loaded); });
     return () => cancelAnimationFrame(id);
   }, []);
@@ -78,9 +80,8 @@ export function FlappyGame() {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (["INPUT", "SELECT", "TEXTAREA"].includes((event.target as HTMLElement)?.tagName)) return;
-      if (event.code === "Digit1") selectPilot("human");
-      else if (event.code === "Digit2") selectPilot("laya");
-      else if (event.code === "Digit3") selectPilot("jev");
+      const digit = /^Digit([1-5])$/.exec(event.code);
+      if (digit) selectPilot(PILOTS[Number(digit[1]) - 1]);
       else if (event.code === "KeyP") togglePause();
       else if (event.code === "Space" || event.code === "ArrowUp") { event.preventDefault(); interact(); }
     };
@@ -135,7 +136,7 @@ export function FlappyGame() {
       if (engine.status === "dead" && savedRun !== runIdRef.current) {
         savedRun = runIdRef.current;
         const currentPilot = pilotRef.current, currentBest = bestRef.current[currentPilot];
-        if (engine.score > currentBest) { const updated = { ...bestRef.current, [currentPilot]: engine.score }; bestRef.current = updated; setBest(updated); localStorage.setItem(BEST_KEY[currentPilot], String(engine.score)); }
+        if (engine.score > currentBest) { const updated = { ...bestRef.current, [currentPilot]: engine.score }; bestRef.current = updated; setBest(updated); localStorage.setItem(`flappy-best-${currentPilot}`, String(engine.score)); }
         addHistory({ kind: "flappy", label: `${LABEL[currentPilot]} · ${engine.score} tubos`, detail: `${engine.match.n} decisiones · ${engine.match.tokens} tok` });
         setView(snapshot(engine));
       }
@@ -152,11 +153,11 @@ export function FlappyGame() {
   return <div className="grid gap-5 lg:grid-cols-[minmax(0,390px)_1fr]">
     <section className="panel p-4 sm:p-6"><div className="mb-4 flex items-center justify-between"><div><p className="eyebrow">Campo de vuelo</p><h2 className="mt-1 text-lg font-semibold">{LABEL[pilot]} al mando</h2></div><span className="metric text-sm text-muted">{view.score} tubos</span></div>
       <div className="mx-auto w-full max-w-[360px] overflow-hidden rounded-xl border-2 border-accent/45 shadow-[0_0_40px_rgb(184_20_77_/_0.11)]"><canvas ref={canvasRef} role="button" tabIndex={0} aria-label="Juego Flappy Bird. Toca o pulsa espacio para empezar y aletear." onClick={interact} className="block aspect-[288/512] w-full cursor-pointer" /></div>
-      <div className="mt-4 grid grid-cols-3 gap-2" role="radiogroup" aria-label="Piloto">{(["human", "laya", "jev"] as Pilot[]).map(key => <button key={key} role="radio" aria-checked={pilot === key} title={key === "human" ? "Control manual" : health[key].detail} disabled={key !== "human" && !health[key].ok} onClick={() => selectPilot(key)} className={`btn !px-2 ${pilot === key ? "border-accent bg-accent-soft text-ink" : "text-muted"}`}>{LABEL[key]}</button>)}</div>
-      <div className="mt-3 flex items-center justify-between gap-3"><p className="text-xs text-muted">Espacio / ↑ aletea · 1/2/3 piloto · P pausa</p><button className="btn !min-h-9 !px-3" disabled={view.status !== "running"} onClick={togglePause}>{paused ? <Play size={14} /> : <Pause size={14} />}{paused ? "Seguir" : "Pausa"}</button></div>
-      <div className="metric mt-4 grid grid-cols-3 gap-3 border-t border-line pt-4 text-center text-sm">{(["human", "laya", "jev"] as Pilot[]).map(key => <div key={key}><span className="block text-xs text-muted">{LABEL[key]}</span><span className="mt-1 block text-lg">{best[key]}</span></div>)}</div>
+      <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-5" role="radiogroup" aria-label="Piloto">{PILOTS.map(key => <button key={key} role="radio" aria-checked={pilot === key} title={key === "human" ? "Control manual" : health[key].detail} disabled={key !== "human" && !health[key].ok} onClick={() => selectPilot(key)} className={`btn !px-2 ${pilot === key ? "border-accent bg-accent-soft text-ink" : "text-muted"}`}>{LABEL[key]}</button>)}</div>
+      <div className="mt-3 flex items-center justify-between gap-3"><p className="text-xs text-muted">Espacio / ↑ aletea · 1–5 piloto · P pausa</p><button className="btn !min-h-9 !px-3" disabled={view.status !== "running"} onClick={togglePause}>{paused ? <Play size={14} /> : <Pause size={14} />}{paused ? "Seguir" : "Pausa"}</button></div>
+      <div className="metric mt-4 grid grid-cols-5 gap-3 border-t border-line pt-4 text-center text-sm">{PILOTS.map(key => <div key={key}><span className="block text-xs text-muted">{LABEL[key]}</span><span className="mt-1 block text-lg">{best[key]}</span></div>)}</div>
     </section>
-    <section className="panel flex flex-col p-5 sm:p-7"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="eyebrow">Telemetría en vivo</p><h2 className="mt-2 text-2xl font-semibold tracking-tight">{thinking ? "Consultando…" : last ? last.action.toUpperCase() : view.status === "dead" ? "Fin de partida" : "Esperando vuelo"}</h2></div><span className={`metric rounded-md border px-3 py-1.5 text-xs ${pilot === "jev" ? "border-accent/40 text-accent-hi" : pilot === "laya" ? "border-laya/40 text-laya" : "border-line text-muted"}`}>{LABEL[pilot].toUpperCase()}</span></div>
+    <section className="panel flex flex-col p-5 sm:p-7"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="eyebrow">Telemetría en vivo</p><h2 className="mt-2 text-2xl font-semibold tracking-tight">{thinking ? "Consultando…" : last ? last.action.toUpperCase() : view.status === "dead" ? "Fin de partida" : "Esperando vuelo"}</h2></div><span className={`metric rounded-md border px-3 py-1.5 text-xs ${pilot === "human" ? "border-line text-muted" : ""}`} style={pilot === "human" ? undefined : { color: PILOT_COLOR[pilot], borderColor: `color-mix(in srgb, ${PILOT_COLOR[pilot]} 40%, transparent)` }}>{LABEL[pilot].toUpperCase()}</span></div>
       <p className="mt-3 min-h-10 text-sm leading-relaxed text-muted">{notice || (pilot === "human" ? "Toca el juego o pulsa espacio para aletear." : health[pilot].ok ? "El piloto observa el hueco en palabras. La física continúa mientras espera." : health[pilot].detail)}</p>
       <dl className="mt-6 grid grid-cols-2 gap-4 border-y border-line py-5 sm:grid-cols-4"><Stat label="Modelo" value={last ? formatMs(last.latencyMs) : "—"} /><Stat label="RTT" value={last ? formatMs(last.rttMs) : "—"} /><Stat label="Media" value={view.n ? formatMs(view.avgMs) : "—"} /><Stat label="Decisiones" value={String(view.n)} /></dl>
       <dl className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4"><Stat label="Tokens" value={String(view.tokens)} /><Stat label="Coste" value={formatUsd(view.costUsd)} /><Stat label="Aleteos" value={String(view.flaps)} /><Stat label="Tiempo" value={formatMs(view.elapsed * 1000)} /></dl>

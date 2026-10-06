@@ -1,10 +1,12 @@
+import type { ModelPilot } from "../ai/pilots";
+
 export const COLS = 10;
 export const ROWS = 20;
 
 export const PIECE_TYPES = ["I", "O", "T", "S", "Z", "J", "L"] as const;
 export type PieceType = (typeof PIECE_TYPES)[number];
 
-export type PlayerKind = "jev" | "laya" | "human";
+export type PlayerKind = ModelPilot | "human";
 export type Side = "left" | "right";
 export type MatchStatus = "idle" | "running" | "paused";
 export type WellStatus = "ready" | "playing" | "thinking" | "animating" | "over";

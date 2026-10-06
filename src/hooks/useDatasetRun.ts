@@ -4,11 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import type { Bench } from "@/lib/bench/sets";
 import type { BenchResult } from "@/lib/bench/server";
 import { addHistory } from "@/lib/history";
+import { byPilot, PILOT_CONCURRENCY, type ModelPilot } from "@/lib/ai/pilots";
 
-export type Pilot = "jev" | "laya";
+export type Pilot = ModelPilot;
 export type RunItem = BenchResult & { wallMs: number };
 type Results = Record<Pilot, Record<string, RunItem>>;
-const empty = (): Results => ({ jev: {}, laya: {} });
+const empty = (): Results => byPilot(() => ({}));
 
 export function useDatasetRun(bench: Bench) {
   const [results, setResults] = useState<Results>(empty);
@@ -18,7 +19,7 @@ export function useDatasetRun(bench: Bench) {
 
   useEffect(() => {
     const id = requestAnimationFrame(() => {
-      try { const saved = JSON.parse(localStorage.getItem(`jev-${bench}-v1`) || "null"); setResults(saved?.jev && saved?.laya ? saved : empty()); } catch { setResults(empty()); }
+      try { const saved = JSON.parse(localStorage.getItem(`jev-${bench}-v1`) || "null"); setResults(saved && typeof saved === "object" ? { ...empty(), ...saved } : empty()); } catch { setResults(empty()); }
     });
     return () => { cancelAnimationFrame(id); abort.current?.abort(); };
   }, [bench]);
@@ -48,7 +49,7 @@ export function useDatasetRun(bench: Bench) {
         done++; setProgress({ pilot, done, total: ids.length });
       }
     };
-    await Promise.all(Array.from({ length: Math.min(ids.length, pilot === "laya" ? 1 : 4) }, worker));
+    await Promise.all(Array.from({ length: Math.min(ids.length, PILOT_CONCURRENCY[pilot]) }, worker));
     if (Object.keys(collected).length) setResults(previous => {
       const next = { ...previous, [pilot]: { ...previous[pilot], ...collected } };
       try { localStorage.setItem(`jev-${bench}-v1`, JSON.stringify(next)); } catch { /* Storage can be unavailable. */ }

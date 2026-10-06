@@ -1,6 +1,7 @@
+import type { ModelPilot } from "@/lib/ai/pilots";
 export const W = 288, H = 512, GROUND = 112, PLAY_H = H - GROUND;
 const FIXED = 1 / 120;
-export type Pilot = "human" | "laya" | "jev";
+export type Pilot = "human" | ModelPilot;
 export type Facts = { bird_y: number; aim_y: number; gap_y: number; vy: number; pipe_dx: number };
 export type Pipe = { id: number; x: number; w: number; top: number; gap: number; scored: boolean };
 export type Decision = { action: "flap" | "glide"; reason: string; latencyMs: number; rttMs: number; state: string; probabilities: Record<string, number> };

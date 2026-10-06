@@ -8,7 +8,7 @@ const cards = [
   { href: "/tetris", number: "02", title: "Tetris", overline: "BAJO PRESIÓN", description: "Dos pozos con las mismas piezas. El modelo elige dónde cae cada una.", stat: "2", statLabel: "pozos sincronizados" },
   { href: "/strawberry", number: "03", title: "Strawberry", overline: "EN PARALELO", description: "Una pregunta, N preguntas juntas o N llamadas: tiempo, acierto y coste.", stat: "N", statLabel: "preguntas simultáneas" },
   { href: "/bandeja", number: "04", title: "Bandeja", overline: "DECISIÓN TIPADA", description: "Tres etiquetas por ticket en una sola llamada, frente a una persona.", stat: "3", statLabel: "respuestas por llamada" },
-  { href: "/cascada", number: "05", title: "Cascada", overline: "ESCALADO", description: "Laya decide primero; Jev y una persona reciben los casos difíciles.", stat: "A→B", statLabel: "dos umbrales" },
+  { href: "/cascada", number: "05", title: "Cascada", overline: "ESCALADO", description: "Un modelo decide primero; Jev y una persona reciben los casos difíciles.", stat: "A→B", statLabel: "dos umbrales" },
   { href: "/guardia", number: "06", title: "Guardia", overline: "SEGURIDAD", description: "Filtra instrucciones hostiles y mide las falsas alarmas.", stat: "60", statLabel: "entradas etiquetadas" },
   { href: "/chat", number: "07", title: "Chat en vivo", overline: "BAJO CARGA", description: "Un chat acelera y muestra cola, p95 y ritmo sostenible.", stat: "40/s", statLabel: "ritmo máximo de prueba" },
   { href: "/carretera", number: "08", title: "Carretera", overline: "PERCEPCIÓN", description: "Carretera infinita: hasta dónde llega cada piloto sin que lo atropellen.", stat: "∞", statLabel: "carriles" },
@@ -20,7 +20,7 @@ export default function Home() {
       <div className="relative z-10">
         <p className="eyebrow mb-7">Laboratorio de decisiones / edición 01</p>
         <h1 className="max-w-3xl text-[clamp(3.8rem,10vw,8.6rem)] font-semibold leading-[.94] tracking-[-.075em]">Jev<br /><span className="text-accent-hi">Benchmark.</span></h1>
-        <p className="mt-8 max-w-[38rem] text-lg leading-relaxed text-muted">Ocho pruebas para medir cómo deciden Jev, Laya y una persona: juegos en tiempo real y decisiones sobre datos etiquetados.</p>
+        <p className="mt-8 max-w-[38rem] text-lg leading-relaxed text-muted">Ocho pruebas para medir cómo deciden Jev, Clef, Clef-Flash, Laya y una persona: juegos en tiempo real y decisiones sobre datos etiquetados.</p>
         <Link href="/strawberry" className="btn btn-primary mt-9">Empezar por Strawberry <ArrowUpRight size={18} /></Link>
       </div>
       <div className="relative mx-auto grid w-full max-w-[520px] place-items-center lg:max-w-none" aria-hidden="true">

@@ -8,6 +8,7 @@ import { Firewall } from "@/components/bench/guardia/Firewall";
 import { GuardiaReport } from "@/components/bench/guardia/GuardiaReport";
 import type { Pilot } from "@/hooks/useDatasetRun";
 import { useGuardiaRun, type GuardiaCase, type GuardiaModel } from "@/hooks/useGuardiaRun";
+import { MODEL_PILOTS, PILOT_COLOR, PILOT_LABEL } from "@/lib/ai/pilots";
 import { formatMs } from "@/lib/ai/pricing";
 import { useHealth } from "@/hooks/useHealth";
 import { useReveal } from "@/hooks/useReveal";
@@ -16,14 +17,13 @@ import { injections } from "@/lib/data/injections";
 function RunButtons({ ids, running, onRun, onCancel }: { ids: string[]; running: { pilot: Pilot; done: number; total: number } | null; onRun: (pilot: Pilot, ids: string[]) => void; onCancel: () => void }) {
   const health = useHealth();
   return <div className="flex min-w-0 flex-wrap items-center gap-3">
-    {(["laya", "jev"] as const).map(pilot => <button key={pilot} type="button" className={`btn ${pilot === "jev" ? "btn-primary" : ""}`} disabled={!!running || !health[pilot].ok} onClick={() => onRun(pilot, ids)}>Medir {pilot === "jev" ? "Jev" : "Laya"}</button>)}
+    {MODEL_PILOTS.map(pilot => <button key={pilot} type="button" className={`btn ${pilot === "jev" ? "btn-primary" : ""}`} disabled={!!running || !health[pilot].ok} onClick={() => onRun(pilot, ids)}>Medir {PILOT_LABEL[pilot]}</button>)}
     {running && <>
       <span className="metric text-sm text-muted" role="status">{running.pilot}: {running.done}/{running.total}</span>
       <div className="h-1.5 w-36 max-w-full overflow-hidden rounded-full bg-white/10" role="progressbar" aria-valuemin={0} aria-valuemax={running.total} aria-valuenow={running.done}><div className="h-full bg-accent-hi" style={{ width: `${running.total ? running.done / running.total * 100 : 0}%` }} /></div>
       <button type="button" className="btn" onClick={onCancel}>Cancelar</button>
     </>}
-    {!health.jev.ok && <span className="min-w-0 text-xs wrap-break-word text-warn">Jev: {health.jev.detail}</span>}
-    {!health.laya.ok && <span className="min-w-0 text-xs wrap-break-word text-warn">Laya: {health.laya.detail}</span>}
+    {MODEL_PILOTS.filter(pilot => !health[pilot].ok).map(pilot => <span key={pilot} className="min-w-0 text-xs wrap-break-word text-warn">{PILOT_LABEL[pilot]}: {health[pilot].detail}</span>)}
   </div>;
 }
 
@@ -63,12 +63,12 @@ export function GuardiaBench() {
         <div className="mt-6"><RunButtons ids={run.ids} running={run.progress} onRun={(id, ids) => { setChosen(id); setSelectedId(null); void run.run(id, ids); }} onCancel={run.cancel} /></div>
         {run.error && <p role="alert" className="mt-3 text-sm wrap-break-word text-bad">{run.error} La pasada continúa con el resto.</p>}
         <label className="mt-7 block min-w-0 text-sm">Umbral de bloqueo <strong className="metric ml-2">{Math.round(threshold * 100)}%</strong><input className="mt-3 w-full min-w-0 accent-[#e0336f]" type="range" min="0" max="100" value={Math.round(threshold * 100)} onChange={event => setThreshold(Number(event.target.value) / 100)} /></label>
-        <p className="mt-4 text-xs text-muted">Si ejecutas esta app localmente, Laya usa el sidecar en 127.0.0.1 y el texto no sale de la máquina. En un despliegue remoto, el texto sí llega al servidor que aloja la app.</p>
+        <p className="mt-4 text-xs text-muted">Si ejecutas esta app localmente, Laya usa el sidecar en 127.0.0.1 y el texto no sale de la máquina. Jev lo recibe en TypeSafe, y Clef y Clef-Flash, en OpenRouter y Cloudflare.</p>
         <div className="mt-5 flex min-w-0 flex-wrap items-center gap-2">
           <div className="flex min-w-0 rounded-md border border-line p-1" role="tablist" aria-label="Modelo en la puerta">
-            {(["laya", "jev"] as const).map(id => (
+            {MODEL_PILOTS.map(id => (
               <button key={id} type="button" role="tab" aria-selected={pilot === id} className={`rounded px-3 py-1.5 text-sm ${pilot === id ? "bg-white/10 text-ink" : "text-muted"}`} onClick={() => { setChosen(id); setSelectedId(null); }}>
-                {id === "jev" ? "Jev" : "Laya"} · {count(id)}
+                {PILOT_LABEL[id]} · {count(id)}
               </button>
             ))}
           </div>
@@ -90,7 +90,7 @@ export function GuardiaBench() {
         <section className="panel p-6">
           <p className="eyebrow">Puerta inactiva</p>
           <h3 className="mt-2 text-xl font-semibold">Aún no hay prompts que filtrar</h3>
-          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted">Mide Laya o Jev para que las 60 entradas pasen por la puerta. El umbral reclasifica en vivo: no se vuelve a llamar al modelo. Laya: {run.models.laya.rows.length} / 60 · Jev: {run.models.jev.rows.length} / 60.</p>
+          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted">Mide un modelo para que las 60 entradas pasen por la puerta. El umbral reclasifica en vivo: no se vuelve a llamar al modelo. {MODEL_PILOTS.map(id => `${PILOT_LABEL[id]}: ${run.models[id].rows.length} / 60`).join(" · ")}.</p>
         </section>
       ) : (
         <>
@@ -105,21 +105,21 @@ export function GuardiaBench() {
 }
 
 function GuardiaCompare({ models, threshold }: { models: Record<Pilot, GuardiaModel>; threshold: number }) {
-  const rows = (["jev", "laya"] as const).filter(id => models[id].rows.length);
+  const rows = MODEL_PILOTS.filter(id => models[id].rows.length);
   if (!rows.length) return null;
   const attacks = injections.filter(item => item.kind !== "benign").length;
   const benign = injections.length - attacks;
   return (
     <section className="panel min-w-0 overflow-hidden p-5 sm:p-6" aria-labelledby="guardia-compare">
-      <p className="eyebrow">Jev frente a Laya · umbral {Math.round(threshold * 100)}%</p>
+      <p className="eyebrow">{rows.map(id => PILOT_LABEL[id]).join(" · ")} · umbral {Math.round(threshold * 100)}%</p>
       <h3 id="guardia-compare" className="mt-1 text-lg font-semibold">Ataques parados y textos normales bloqueados</h3>
-      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+      <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {rows.map(id => {
           const m = models[id], c = m.confusion;
-          const color = id === "jev" ? "var(--accent-hi)" : "var(--laya)";
+          const color = PILOT_COLOR[id];
           return (
             <div key={id} className="rounded-lg border border-line bg-white/3 p-4">
-              <p className="text-sm font-medium" style={{ color }}>{id === "jev" ? "Jev" : "Laya"}{m.rows.length < injections.length && <span className="ml-1 text-xs font-normal text-faint">({m.rows.length} de {injections.length})</span>}</p>
+              <p className="text-sm font-medium" style={{ color }}>{PILOT_LABEL[id]}{m.rows.length < injections.length && <span className="ml-1 text-xs font-normal text-faint">({m.rows.length} de {injections.length})</span>}</p>
               <dl className="mt-3 space-y-3 text-sm">
                 <div>
                   <dt className="flex justify-between text-xs text-muted"><span>Ataques detectados</span><span className="metric text-ink">{c.tp}/{c.tp + c.fn || attacks}</span></dt>

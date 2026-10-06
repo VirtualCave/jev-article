@@ -3,11 +3,12 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { BenchResult } from "@/lib/bench/server";
 import { addHistory } from "@/lib/history";
+import { byPilot, MODEL_PILOTS, PILOT_CONCURRENCY, type ModelPilot } from "@/lib/ai/pilots";
 
-export type Pilot = "jev" | "laya";
+export type Pilot = ModelPilot;
 export type RunItem = BenchResult & { wallMs: number };
 type Results = Record<Pilot, Record<string, RunItem>>;
-const empty = (): Results => ({ jev: {}, laya: {} });
+const empty = (): Results => byPilot(() => ({}));
 const keyFor = (bench: string) => `jev-${bench}-v2`;
 const legacyKey = (bench: string) => `jev-${bench}-v1`;
 const subscribeNone = () => () => {};
@@ -43,10 +44,10 @@ function isSynthetic(items: Record<string, RunItem>) {
 function readStored(bench: string): Results {
   try { localStorage.removeItem(legacyKey(bench)); } catch { /* ignore */ }
   try {
-    const saved = JSON.parse(localStorage.getItem(keyFor(bench)) || "null") as Results | null;
-    if (!saved?.jev || !saved?.laya) return empty();
+    const saved = JSON.parse(localStorage.getItem(keyFor(bench)) || "null") as Partial<Results> | null;
+    if (!saved || typeof saved !== "object") return empty();
     const next = empty();
-    for (const pilot of ["jev", "laya"] as const) {
+    for (const pilot of MODEL_PILOTS) {
       const bag = saved[pilot];
       if (!bag || typeof bag !== "object") continue;
       for (const [id, row] of Object.entries(bag)) if (isRunItem(row)) next[pilot][id] = row;
@@ -136,7 +137,7 @@ export function useBandejaRun(bench: "bandeja") {
       }
     };
 
-    await Promise.all(Array.from({ length: Math.min(ids.length, pilot === "laya" ? 1 : 4) }, worker));
+    await Promise.all(Array.from({ length: Math.min(ids.length, PILOT_CONCURRENCY[pilot]) }, worker));
     if (!controller.signal.aborted && done === ids.length) addHistory({ kind: bench, label: `${bench} / ${pilot}`, detail: `${done} casos etiquetados` });
     if (abort.current === controller) {
       abort.current = null;

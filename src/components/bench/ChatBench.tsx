@@ -4,7 +4,8 @@ import { useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { useHealth } from "@/hooks/useHealth";
 import { ChatPanel } from "./chat/ChatPanel";
-import { emptyLive, PILOTS, type ChatLine, type LiveStats, type Pilot, type Report } from "./chat/model";
+import { emptyLive, pilotLabel, PILOTS, type ChatLine, type LiveStats, type Pilot, type Report } from "./chat/model";
+import { MODEL_PILOTS, PILOT_LABEL } from "@/lib/ai/pilots";
 import { ChatStream } from "./chat/runStream";
 import { RunSummary } from "./chat/RunSummary";
 import { StreamStats } from "./chat/StreamStats";
@@ -96,7 +97,7 @@ export function ChatBench() {
     return () => window.removeEventListener("keydown", handle);
   }, []);
 
-  const who = last ? (last === "human" ? "una persona" : last === "jev" ? "Jev" : "Laya") : "";
+  const who = last ? pilotLabel(last) : "";
   return (
     <div className="overflow-anchor-none space-y-4">
       <section className="panel px-4 py-2">
@@ -108,14 +109,13 @@ export function ChatBench() {
           <div className="flex flex-wrap gap-2">
             {PILOTS.map(selected => (
               <button key={selected} type="button" className={`btn ${selected === "jev" ? "btn-primary" : ""}`} disabled={!!pilot || (selected !== "human" && !health[selected].ok)} onClick={() => start(selected)}>
-                Probar {selected === "human" ? "persona" : selected}
+                Probar {selected === "human" ? "persona" : PILOT_LABEL[selected]}
               </button>
             ))}
             {pilot && <button type="button" className="btn" onClick={() => streamRef.current?.abort()}>Detener</button>}
           </div>
         </div>
-        {!health.laya.ok && <p className="mt-2 text-xs text-warn">Laya: {health.laya.detail}</p>}
-        {!health.jev.ok && <p className="mt-1 text-xs text-warn">Jev: {health.jev.detail}</p>}
+        {MODEL_PILOTS.filter(id => !health[id].ok).map(id => <p key={id} className="mt-1 text-xs text-warn">{PILOT_LABEL[id]}: {health[id].detail}</p>)}
         {error && <p className="mt-2 text-sm text-bad">{error} Ese mensaje cuenta como perdido.</p>}
       </section>
       <div className="grid grid-cols-1 gap-3 min-[700px]:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] min-[700px]:items-stretch">

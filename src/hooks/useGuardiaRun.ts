@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { indexFromId, isVisualSeed, useStoredDatasetRun, type Pilot, type RunItem } from "@/hooks/useStoredDatasetRun";
 import { confusion, recallAtFpr } from "@/lib/bench/metrics";
 import { injections, type Injection } from "@/lib/data/injections";
+import { byPilot } from "@/lib/ai/pilots";
 
 export function isGuardiaSeed(id: string, item: RunItem) {
   const n = indexFromId(id, "injection-");
@@ -141,10 +142,7 @@ function modelView(pilot: Pilot, results: Record<string, RunItem>, threshold: nu
 export function useGuardiaRun(threshold: number) {
   const dataset = useStoredDatasetRun("guardia", "jev-guardia-v2", isGuardiaSeed, "jev-guardia-v1");
   const { results } = dataset;
-  const derived = useMemo(() => ({
-    laya: modelView("laya", results.laya, threshold),
-    jev: modelView("jev", results.jev, threshold),
-  }), [results, threshold]);
+  const derived = useMemo(() => byPilot(pilot => modelView(pilot, results[pilot], threshold)), [results, threshold]);
   return { ...dataset, models: derived, ids: injections.map(item => item.id) };
 }
 

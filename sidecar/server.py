@@ -15,12 +15,79 @@ os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
 
 HOST = "127.0.0.1"
 PORT = int(os.environ.get("LAYA_PORT", "8765"))
+CHECKPOINT = "convaiinnovations/laya"
 
 LOCK = threading.Lock()
 AGENT = None
 READY = False
 LOAD_ERROR = None
 DEVICE = "unknown"
+
+TETRIS_WARMUP = {
+    "state": {
+        "falling_piece": "a T-shaped piece",
+        "next_piece": "a long straight bar",
+        "current_well": "The stack is low. The floor is even. No buried empty cells.",
+        "candidate_wells": {
+            "p0": "Clears one row. No buried cells. Floor even.",
+            "p1": "No full row. Buries empty cells. Floor spiky.",
+        },
+    },
+    "questions": {
+        "playable_well": {
+            "type": "choice",
+            "instructions": "Which well in `candidate_wells` is the most playable?",
+            "criteria": {
+                "p0": "Clears one row. No buried cells. Floor even.",
+                "p1": "No full row. Buries empty cells. Floor spiky.",
+            },
+        },
+        "stack_danger": {
+            "type": "score",
+            "instructions": "How close is `current_well` to topping out?",
+            "criteria": [
+                "The stack is low. Plenty of room.",
+                "The stack is mid-height. Comfortable.",
+                "The stack is high. Mistakes are costly.",
+                "The stack is near the top. The next few drops may end the game.",
+            ],
+        },
+        "clear_is_available": {
+            "type": "noul",
+            "instructions": "Does at least one well complete a full row?",
+            "criteria": {
+                "true": "At least one candidate completes a full row.",
+                "false": "No candidate completes a full row.",
+            },
+        },
+        "burial_is_avoidable": {
+            "type": "noul",
+            "instructions": "Does at least one well avoid burying empty cells?",
+            "criteria": {
+                "true": "A placement exists that does not bury empty cells.",
+                "false": "Every placement buries empty cells.",
+            },
+        },
+    },
+}
+FLAPPY_WARMUP = {
+    "state": "The bird is below the gap.",
+    "questions": {
+        "relative_to_gap": {
+            "type": "choice",
+            "instructions": "Where is the bird relative to the gap?",
+            "criteria": {"below": "the bird is below the gap", "above": "the bird is above the gap"},
+        }
+    },
+}
+
+
+def predict(state, questions, lang="en"):
+    """Laya releases before 0.3.6 do not take `lang`."""
+    try:
+        return AGENT.predict(state, questions, lang=lang)
+    except TypeError:
+        return AGENT.predict(state, questions)
 
 
 def load_agent():
@@ -29,81 +96,16 @@ def load_agent():
         import laya
 
         print("Loading Laya English checkpoint. First run downloads weights.", flush=True)
-        AGENT = laya.load("convaiinnovations/laya")
+        AGENT = laya.load(CHECKPOINT)
         DEVICE = str(getattr(AGENT, "device", "unknown"))
-        warmup = {
-            "falling_piece": "a T-shaped piece",
-            "next_piece": "a long straight bar",
-            "current_well": "The stack is low. The floor is even. No buried empty cells.",
-            "candidate_wells": {
-                "p0": "Clears one row. No buried cells. Floor even.",
-                "p1": "No full row. Buries empty cells. Floor spiky.",
-            },
-        }
-        questions = {
-            "playable_well": {
-                "type": "choice",
-                "instructions": "Which well in `candidate_wells` is the most playable?",
-                "criteria": warmup["candidate_wells"],
-            },
-            "stack_danger": {
-                "type": "score",
-                "instructions": "How close is `current_well` to topping out?",
-                "criteria": [
-                    "The stack is low. Plenty of room.",
-                    "The stack is mid-height. Comfortable.",
-                    "The stack is high. Mistakes are costly.",
-                    "The stack is near the top. The next few drops may end the game.",
-                ],
-            },
-            "clear_is_available": {
-                "type": "noul",
-                "instructions": "Does at least one well complete a full row?",
-                "criteria": {
-                    "true": "At least one candidate completes a full row.",
-                    "false": "No candidate completes a full row.",
-                },
-            },
-            "burial_is_avoidable": {
-                "type": "noul",
-                "instructions": "Does at least one well avoid burying empty cells?",
-                "criteria": {
-                    "true": "A placement exists that does not bury empty cells.",
-                    "false": "Every placement buries empty cells.",
-                },
-            },
-        }
-        try:
-            AGENT.predict(warmup, questions, lang="en")
-        except TypeError:
-            AGENT.predict(warmup, questions)
-        flappy_questions = {
-            "relative_to_gap": {
-                "type": "choice",
-                "instructions": "Where is the bird relative to the gap?",
-                "criteria": {"below": "the bird is below the gap", "above": "the bird is above the gap"},
-            }
-        }
-        try:
-            AGENT.predict("The bird is below the gap.", flappy_questions, lang="en")
-        except TypeError:
-            AGENT.predict("The bird is below the gap.", flappy_questions)
+        for warmup in (TETRIS_WARMUP, FLAPPY_WARMUP):
+            predict(warmup["state"], warmup["questions"])
         READY = True
         print("Laya ready on http://%s:%s" % (HOST, PORT), flush=True)
     except Exception as exc:  # noqa: BLE001
         LOAD_ERROR = str(exc)
         traceback.print_exc()
         print("Laya failed to load: %s" % exc, flush=True)
-
-
-def predict(state, questions, lang="en"):
-    if AGENT is None:
-        raise RuntimeError(LOAD_ERROR or "Laya is still loading")
-    with LOCK:
-        try:
-            return AGENT.predict(state, questions, lang=lang)
-        except TypeError:
-            return AGENT.predict(state, questions)
 
 
 def jsonable(value):
@@ -140,11 +142,7 @@ class Handler(BaseHTTPRequestHandler):
             {
                 "ok": LOAD_ERROR is None,
                 "ready": READY,
-                "detail": (
-                    "Laya listo"
-                    if READY
-                    else LOAD_ERROR or "Cargando checkpoint de Laya"
-                ),
+                "detail": "Laya listo" if READY else LOAD_ERROR or "Cargando checkpoint de Laya",
                 "device": DEVICE,
             },
         )
@@ -153,44 +151,37 @@ class Handler(BaseHTTPRequestHandler):
         if self.path.split("?", 1)[0] != "/predict":
             self._send(404, {"ok": False, "error": "not found"})
             return
-        if not READY:
-            self._send(
-                503,
-                {
-                    "ok": False,
-                    "error": LOAD_ERROR or "Laya still loading",
-                },
-            )
-            return
         length = int(self.headers.get("Content-Length", "0"))
         raw = self.rfile.read(length)
+        if not READY:
+            self._send(503, {"ok": False, "error": LOAD_ERROR or "Laya still loading"})
+            return
         try:
             body = json.loads(raw.decode("utf-8"))
         except json.JSONDecodeError:
             self._send(400, {"ok": False, "error": "invalid json"})
             return
         try:
-            result = predict(body.get("state"), body.get("questions"), body.get("lang") or "en")
+            with LOCK:
+                result = predict(body.get("state"), body.get("questions"), body.get("lang") or "en")
         except Exception as exc:  # noqa: BLE001
             traceback.print_exc()
             self._send(500, {"ok": False, "error": str(exc)})
             return
         answers = result.get("answers", {}) if isinstance(result, dict) else {}
         usage = result.get("usage") if isinstance(result, dict) else None
-        self._send(
-            200,
-            {
-                "model": "convaiinnovations/laya",
-                "answers": jsonable(answers),
-                "usage": jsonable(usage),
-            },
-        )
+        self._send(200, {"model": CHECKPOINT, "answers": jsonable(answers), "usage": jsonable(usage)})
+
+
+class Server(ThreadingHTTPServer):
+    # Strawberry's fan-out opens one connection per letter at once; the default backlog of 5 resets the rest.
+    request_queue_size = 64
 
 
 def main():
     loader = threading.Thread(target=load_agent, name="laya-load", daemon=True)
     loader.start()
-    httpd = ThreadingHTTPServer((HOST, PORT), Handler)
+    httpd = Server((HOST, PORT), Handler)
     print("Sidecar listening on http://%s:%s (model loading in background)" % (HOST, PORT), flush=True)
     try:
         httpd.serve_forever()

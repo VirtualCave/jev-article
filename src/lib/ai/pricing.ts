@@ -1,9 +1,12 @@
-/** Jev 1.13: charged per input token. Output is free. https://docs.typesafe.ai/models */
-export const JEV_USD_PER_MILLION_INPUT = 0.042;
+/**
+ * USD per million input tokens; output is free on all three hosted models.
+ * Jev 1.13: https://docs.typesafe.ai/models · Clef and Clef-Flash on OpenRouter: https://openrouter.ai/cloudflare/clef
+ */
+export const USD_PER_MILLION_INPUT = { jev: 0.042, clef: 0.24, "clef-flash": 0.09 } as const;
 
-export function jevCostUsd(inputTokens: number) {
+export function inputCostUsd(pilot: keyof typeof USD_PER_MILLION_INPUT, inputTokens: number) {
   if (!Number.isFinite(inputTokens) || inputTokens <= 0) return 0;
-  return (inputTokens / 1_000_000) * JEV_USD_PER_MILLION_INPUT;
+  return (inputTokens / 1_000_000) * USD_PER_MILLION_INPUT[pilot];
 }
 
 export function formatUsd(amount: number) {

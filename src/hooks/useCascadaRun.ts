@@ -6,8 +6,12 @@ import { prediction } from "@/lib/bench/answers";
 import { accuracy, cascade, type CascadeItem, type Prediction } from "@/lib/bench/metrics";
 import type { BenchResult } from "@/lib/bench/server";
 import { tickets, type Ticket } from "@/lib/data/tickets";
+import { PILOT_LABEL, type ModelPilot } from "@/lib/ai/pilots";
 
-export type Station = "laya" | "jev" | "human";
+/** Pilots that can sit in front of Jev. Every ticket goes through this first stage. */
+export type FirstPilot = Exclude<ModelPilot, "jev">;
+export const FIRST_PILOTS: FirstPilot[] = ["laya", "clef-flash", "clef"];
+export type Station = "first" | "jev" | "human";
 
 export const DEPT_LABEL: Record<string, string> = {
   billing: "Facturación",
@@ -23,13 +27,14 @@ const SIGNALS: Record<Ticket["department"], RegExp> = {
 
 export type CascadaTicket = {
   ticket: Ticket;
-  laya: Prediction;
+  first: Prediction;
   jev?: Prediction;
-  layaMs: number;
+  firstMs: number;
   jevMs?: number;
+  firstCostUsd: number;
   jevCostUsd?: number;
   station: Station;
-  layaCorrect: boolean;
+  firstCorrect: boolean;
   jevCorrect: boolean | null;
   finalCorrect: boolean;
   why: string;
@@ -59,32 +64,32 @@ function mixReason(ticket: Ticket, predicted: string | number | boolean) {
   }
   const hit = ticket.text.match(SIGNALS[key]);
   if (hit) return `el texto menciona «${hit[0]}», una pista típica de ${DEPT_LABEL[key]}, aunque el departamento real es ${DEPT_LABEL[ticket.department]}`;
-  return `Laya o Jev se mostraron seguros de ${DEPT_LABEL[key]} sin que el texto apunte con claridad a ese departamento`;
+  return `el modelo se mostró seguro de ${DEPT_LABEL[key]} sin que el texto apunte con claridad a ese departamento`;
 }
 
-function whyText(item: Omit<CascadaTicket, "why" | "mix" | "finalCorrect" | "station">, station: Station, thresholdA: number, thresholdB: number) {
+function whyText(item: Omit<CascadaTicket, "why" | "mix" | "finalCorrect" | "station">, station: Station, thresholdA: number, thresholdB: number, label: string) {
   const a = Math.round(thresholdA * 100);
   const b = Math.round(thresholdB * 100);
-  const layaPct = Math.round(item.laya.confidence * 100);
-  const layaDept = DEPT_LABEL[String(item.laya.predicted)] ?? String(item.laya.predicted);
-  if (station === "laya") {
-    const verdict = item.layaCorrect ? "Acertó." : `Falló: predijo ${layaDept} y era ${DEPT_LABEL[item.ticket.department]}.`;
-    return `Laya asignó ${layaDept} con ${layaPct}% de confianza, por encima del umbral A (${a}%). El ticket se queda aquí y no se consulta a Jev. ${verdict}`;
+  const firstPct = Math.round(item.first.confidence * 100);
+  const firstDept = DEPT_LABEL[String(item.first.predicted)] ?? String(item.first.predicted);
+  if (station === "first") {
+    const verdict = item.firstCorrect ? "Acertó." : `Falló: predijo ${firstDept} y era ${DEPT_LABEL[item.ticket.department]}.`;
+    return `${label} asignó ${firstDept} con ${firstPct}% de confianza, por encima del umbral A (${a}%). El ticket se queda aquí y no se consulta a Jev. ${verdict}`;
   }
   const jevPct = item.jev ? Math.round(item.jev.confidence * 100) : null;
   const jevDept = item.jev ? DEPT_LABEL[String(item.jev.predicted)] ?? String(item.jev.predicted) : null;
   if (station === "jev" && item.jev && jevDept !== null && jevPct !== null) {
     const verdict = item.jevCorrect ? "Jev acertó." : `Jev falló: predijo ${jevDept} y era ${DEPT_LABEL[item.ticket.department]}.`;
-    return `Laya solo tenía ${layaPct}% (umbral A ${a}%), así que el ticket viaja a Jev. Jev asignó ${jevDept} con ${jevPct}% ≥ B (${b}%). ${verdict}`;
+    return `${label} solo tenía ${firstPct}% (umbral A ${a}%), así que el ticket viaja a Jev. Jev asignó ${jevDept} con ${jevPct}% ≥ B (${b}%). ${verdict}`;
   }
   if (!item.jev) {
-    return `Laya tenía ${layaPct}%, por debajo de A (${a}%), y no hay respuesta de Jev en la pasada de Bandeja. El ticket va a revisión humana.`;
+    return `${label} tenía ${firstPct}%, por debajo de A (${a}%), y no hay respuesta de Jev en la pasada de Bandeja. El ticket va a revisión humana.`;
   }
-  return `Ni Laya (${layaPct}% < A ${a}%) ni Jev (${jevPct}% < B ${b}%) superaron su umbral. Una persona revisa el departamento; esa revisión se estima perfecta.`;
+  return `Ni ${label} (${firstPct}% < A ${a}%) ni Jev (${jevPct}% < B ${b}%) superaron su umbral. Una persona revisa el departamento; esa revisión se estima perfecta.`;
 }
 
-function route(laya: Prediction, jev: Prediction | undefined, thresholdA: number, thresholdB: number): Station {
-  if (laya.confidence >= thresholdA) return "laya";
+function route(first: Prediction, jev: Prediction | undefined, thresholdA: number, thresholdB: number): Station {
+  if (first.confidence >= thresholdA) return "first";
   if (jev && jev.confidence >= thresholdB) return "jev";
   return "human";
 }
@@ -92,9 +97,9 @@ function route(laya: Prediction, jev: Prediction | undefined, thresholdA: number
 function statsFor(items: CascadaTicket[], station: Station): StationStats {
   const rows = items.filter(item => item.station === station);
   const correct = station === "human" ? rows.length : rows.filter(row => row.finalCorrect).length;
-  const costUsd = station === "jev" ? rows.reduce((sum, row) => sum + (row.jevCostUsd ?? 0), 0) : 0;
-  const timeMs = station === "laya"
-    ? rows.reduce((sum, row) => sum + row.layaMs, 0)
+  const costUsd = station === "first" ? rows.reduce((sum, row) => sum + row.firstCostUsd, 0) : station === "jev" ? rows.reduce((sum, row) => sum + (row.jevCostUsd ?? 0), 0) : 0;
+  const timeMs = station === "first"
+    ? rows.reduce((sum, row) => sum + row.firstMs, 0)
     : station === "jev"
       ? rows.reduce((sum, row) => sum + (row.jevMs ?? 0), 0)
       : 0;
@@ -102,7 +107,7 @@ function statsFor(items: CascadaTicket[], station: Station): StationStats {
 }
 
 export function stationStats(items: CascadaTicket[]) {
-  return { laya: statsFor(items, "laya"), jev: statsFor(items, "jev"), human: statsFor(items, "human") };
+  return { first: statsFor(items, "first"), jev: statsFor(items, "jev"), human: statsFor(items, "human") };
 }
 
 export function isBandejaSeed(id: string, item: RunItem) {
@@ -125,33 +130,35 @@ export function isBandejaSyntheticPilot(items: Record<string, RunItem>) {
   );
 }
 
-export function useCascadaRun(thresholdA: number, thresholdB: number) {
+export function useCascadaRun(first: FirstPilot, thresholdA: number, thresholdB: number) {
   // Live Bandeja key is jev-bandeja-v2; v1 is discarded as the visual-test seed store.
   const dataset = useStoredDatasetRun("bandeja", "jev-bandeja-v2", isBandejaSeed, "jev-bandeja-v1", isBandejaSyntheticPilot);
   const { results } = dataset;
 
   const derived = useMemo(() => {
+    const label = PILOT_LABEL[first];
     const items: CascadaTicket[] = [];
     const samples: CascadeItem[] = [];
     for (const ticket of tickets) {
-      const layaResult = results.laya[ticket.id];
+      const firstResult = results[first][ticket.id];
       const jevResult = results.jev[ticket.id];
-      if (!layaResult?.ok) continue;
-      const laya = itemPrediction(layaResult, "department", ticket.department);
-      if (!laya) continue;
+      if (!firstResult?.ok) continue;
+      const head = itemPrediction(firstResult, "department", ticket.department);
+      if (!head) continue;
       const jev = jevResult?.ok ? itemPrediction(jevResult, "department", ticket.department) ?? undefined : undefined;
-      const sample: CascadeItem = { laya, jev, layaMs: layaResult.latencyMs, jevMs: jevResult?.ok ? jevResult.latencyMs : undefined, jevCostUsd: jevResult?.ok ? jevResult.usage.costUsd : undefined };
+      const sample: CascadeItem = { first: head, jev, firstMs: firstResult.latencyMs, jevMs: jevResult?.ok ? jevResult.latencyMs : undefined, firstCostUsd: firstResult.usage.costUsd, jevCostUsd: jevResult?.ok ? jevResult.usage.costUsd : undefined };
       samples.push(sample);
-      const station = route(laya, jev, thresholdA, thresholdB);
-      const layaCorrect = laya.predicted === laya.truth;
+      const station = route(head, jev, thresholdA, thresholdB);
+      const firstCorrect = head.predicted === head.truth;
       const jevCorrect = jev ? jev.predicted === jev.truth : null;
-      const decided = station === "laya" ? laya : station === "jev" ? jev : undefined;
-      const base = { ticket, laya, jev, layaMs: sample.layaMs, jevMs: sample.jevMs, jevCostUsd: sample.jevCostUsd, station, layaCorrect, jevCorrect };
+      const decided = station === "first" ? head : station === "jev" ? jev : undefined;
+      const base = { ticket, first: head, jev, firstMs: sample.firstMs, jevMs: sample.jevMs, firstCostUsd: firstResult.usage.costUsd, jevCostUsd: sample.jevCostUsd, firstCorrect, jevCorrect };
       items.push({
         ...base,
+        station,
         finalCorrect: station === "human" ? true : decided?.predicted === decided?.truth,
         mix: decided ? mixReason(ticket, decided.predicted) : null,
-        why: whyText(base, station, thresholdA, thresholdB),
+        why: whyText(base, station, thresholdA, thresholdB, label),
       });
     }
     const summary = cascade(samples, thresholdA, thresholdB);
@@ -160,14 +167,10 @@ export function useCascadaRun(thresholdA: number, thresholdB: number) {
       const row = itemPrediction(results.jev[item.id], "department", item.department);
       return row ? [row] : [];
     });
-    const missingJev = samples.filter(item => item.laya.confidence < thresholdA && !item.jev).length;
+    const missingJev = samples.filter(item => item.first.confidence < thresholdA && !item.jev).length;
     const failures = items.filter(item => item.station !== "human" && !item.finalCorrect);
-    const layaReady = tickets.filter(item => itemPrediction(results.laya[item.id], "department", item.department)).length;
+    const firstReady = tickets.filter(item => itemPrediction(results[first][item.id], "department", item.department)).length;
     const jevReady = tickets.filter(item => itemPrediction(results.jev[item.id], "department", item.department)).length;
-    const jevTouchedCost = items.reduce((sum, item) => {
-      if (item.laya.confidence >= thresholdA) return sum;
-      return sum + (item.jevCostUsd ?? 0);
-    }, 0);
     return {
       items,
       samples,
@@ -179,12 +182,10 @@ export function useCascadaRun(thresholdA: number, thresholdB: number) {
       jevOnlyLatency: jevRows.length ? jevRows.reduce((sum, row) => sum + row.latencyMs, 0) / jevRows.length : null,
       missingJev,
       failures,
-      layaReady,
+      firstReady,
       jevReady,
-      jevTouchedCost,
     };
-  }, [results, thresholdA, thresholdB]);
+  }, [first, results, thresholdA, thresholdB]);
 
   return { ...dataset, ...derived, ids: tickets.map(item => item.id) };
 }
-

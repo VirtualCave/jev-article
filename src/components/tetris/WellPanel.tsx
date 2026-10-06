@@ -3,7 +3,16 @@ import { DecisionStrip, MoveMeter } from "./DecisionStrip";
 import { PlayerSelect } from "./PlayerSelect";
 import { useWell } from "../../hooks/useWell";
 import { useEffect } from "react";
+import type { ModelPilot } from "../../lib/ai/pilots";
 import type { MatchStatus, PlayerKind, Side } from "../../lib/tetris/types";
+
+const SUBTITLE: Record<PlayerKind, string> = {
+  human: "Control al teclado",
+  jev: "Jev, System One de TypeSafe",
+  clef: "Clef (27B) vía OpenRouter",
+  "clef-flash": "Clef-Flash (9B) vía OpenRouter",
+  laya: "Laya en local",
+};
 
 const TITLES: Record<Side, string> = {
   left: "Pozo izquierdo",
@@ -30,7 +39,7 @@ export function WellPanel({
   match: MatchStatus;
   bothHuman: boolean;
   healthDetail: string;
-  availability: { jev: boolean; laya: boolean };
+  availability: Record<ModelPilot, boolean>;
   onProgress: (side: Side, progress: WellProgress) => void;
 }) {
   const { view, trace, notice, spend, timing } = useWell({ seed, player, match, side, bothHuman });
@@ -49,11 +58,7 @@ export function WellPanel({
         <div>
           <h2 className="text-lg font-medium tracking-tight text-ink">{TITLES[side]}</h2>
           <p className="mt-0.5 text-sm text-muted">
-            {player === "human"
-              ? "Control al teclado"
-              : player === "jev"
-                ? "Jev, System One de TypeSafe"
-                : "Laya en local"}
+            {SUBTITLE[player]}
           </p>
         </div>
         <div className="text-right">

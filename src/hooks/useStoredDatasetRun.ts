@@ -4,12 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import type { Bench } from "@/lib/bench/sets";
 import type { BenchResult } from "@/lib/bench/server";
 import { addHistory } from "@/lib/history";
+import { byPilot, MODEL_PILOTS, PILOT_CONCURRENCY, type ModelPilot } from "@/lib/ai/pilots";
 
-export type Pilot = "jev" | "laya";
+export type Pilot = ModelPilot;
 export type RunItem = BenchResult & { wallMs: number };
 export type Results = Record<Pilot, Record<string, RunItem>>;
 
-export const emptyResults = (): Results => ({ jev: {}, laya: {} });
+export const emptyResults = (): Results => byPilot(() => ({}));
 
 export function indexFromId(id: string, prefix: string) {
   const n = Number(id.slice(prefix.length)) - 1;
@@ -27,7 +28,7 @@ export function sanitizeResults(
   isSyntheticPilot?: (items: Record<string, RunItem>) => boolean,
 ): Results {
   const next = emptyResults();
-  for (const pilot of ["jev", "laya"] as const) {
+  for (const pilot of MODEL_PILOTS) {
     for (const [id, item] of Object.entries(results[pilot] ?? {})) {
       if (item && !isSeed(id, item)) next[pilot][id] = item;
     }
@@ -43,8 +44,8 @@ function parseStored(
 ): Results | null {
   if (!raw) return null;
   try {
-    const saved = JSON.parse(raw) as Results;
-    return saved?.jev && saved?.laya ? sanitizeResults(saved, isSeed, isSyntheticPilot) : null;
+    const saved = JSON.parse(raw) as Partial<Results> | null;
+    return saved && typeof saved === "object" ? sanitizeResults(saved as Results, isSeed, isSyntheticPilot) : null;
   } catch {
     return null;
   }
@@ -58,7 +59,7 @@ export function readResults(
 ): Results {
   if (typeof window === "undefined") return emptyResults();
   const current = parseStored(localStorage.getItem(key), isSeed, isSyntheticPilot);
-  if (current && (Object.keys(current.jev).length || Object.keys(current.laya).length)) return current;
+  if (current && MODEL_PILOTS.some(pilot => Object.keys(current[pilot]).length)) return current;
   if (!legacyKey) return current ?? emptyResults();
   const legacy = parseStored(localStorage.getItem(legacyKey), isSeed, isSyntheticPilot);
   try { localStorage.removeItem(legacyKey); } catch { /* Storage can be unavailable. */ }
@@ -145,7 +146,7 @@ export function useStoredDatasetRun(
         });
       }
     };
-    await Promise.all(Array.from({ length: Math.min(ids.length, pilot === "laya" ? 1 : 4) }, worker));
+    await Promise.all(Array.from({ length: Math.min(ids.length, PILOT_CONCURRENCY[pilot]) }, worker));
     if (!controller.signal.aborted && done === ids.length) addHistory({ kind: bench, label: `${bench} / ${pilot}`, detail: `${done} casos etiquetados` });
     if (abort.current === controller) { abort.current = null; setProgress(null); }
   };

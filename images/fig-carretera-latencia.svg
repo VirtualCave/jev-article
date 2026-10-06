@@ -1,7 +1,41 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 390" width="640" height="390" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-label="Carretera: carriles cruzados frente a latencia">
-<rect width="640" height="390" rx="12" fill="#fcfcfb"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 430" width="680" height="430" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-label="Carretera: carriles cruzados frente a latencia">
+<rect width="680" height="430" rx="12" fill="#fcfcfb"/>
 <text x="24" y="30" font-size="16" fill="#0b0b0b" text-anchor="start" font-weight="600">Carretera: carriles cruzados frente a latencia</text>
 <text x="24" y="48" font-size="12" fill="#52514e" text-anchor="start" font-weight="400">Mejor partida de 3 (oráculo) o 5 (modelos) por punto; máx. 150 s por partida. Semillas fijas.</text>
-<g transform="translate(24,60)"><rect width="12" height="12" rx="3" fill="#C4C3BD"/><text x="18" y="10" font-size="12" fill="#52514e" text-anchor="start" font-weight="400">Oráculo con retardo</text></g><g transform="translate(174,60)"><rect width="12" height="12" rx="3" fill="#B8144D"/><text x="18" y="10" font-size="12" fill="#52514e" text-anchor="start" font-weight="400">Jev</text></g><g transform="translate(324,60)"><rect width="12" height="12" rx="3" fill="#2F4F96"/><text x="18" y="10" font-size="12" fill="#52514e" text-anchor="start" font-weight="400">Laya</text></g>
-<line x1="80" x2="580" y1="330" y2="330" stroke="#e6e5e1" stroke-width="1"/><text x="72" y="334" font-size="10" fill="#8a8984" text-anchor="end" font-weight="400">0</text><line x1="80" x2="580" y1="272.5" y2="272.5" stroke="#e6e5e1" stroke-width="1"/><text x="72" y="276.5" font-size="10" fill="#8a8984" text-anchor="end" font-weight="400">15</text><line x1="80" x2="580" y1="215" y2="215" stroke="#e6e5e1" stroke-width="1"/><text x="72" y="219" font-size="10" fill="#8a8984" text-anchor="end" font-weight="400">30</text><line x1="80" x2="580" y1="157.5" y2="157.5" stroke="#e6e5e1" stroke-width="1"/><text x="72" y="161.5" font-size="10" fill="#8a8984" text-anchor="end" font-weight="400">45</text><line x1="80" x2="580" y1="100" y2="100" stroke="#e6e5e1" stroke-width="1"/><text x="72" y="104" font-size="10" fill="#8a8984" text-anchor="end" font-weight="400">60</text><text x="80" y="348" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="400">0</text><text x="163.33333333333331" y="348" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="400">150</text><text x="246.66666666666666" y="348" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="400">300</text><text x="330" y="348" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="400">450</text><text x="413.3333333333333" y="348" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="400">600</text><text x="496.6666666666667" y="348" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="400">750</text><text x="580" y="348" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="400">900</text><text x="330" y="366" font-size="11" fill="#52514e" text-anchor="middle" font-weight="400">Latencia de la decisión (ms, mediana)</text><text transform="rotate(-90 24 215)" x="24" y="215" font-size="11" fill="#52514e" text-anchor="middle" font-weight="400">Carriles cruzados (mejor partida)</text><polyline points="80,165.16666666666666 163.33333333333331,157.5 246.66666666666666,157.5 413.3333333333333,203.5" fill="none" stroke="#C4C3BD" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="80" cy="165.16666666666666" r="4" fill="#C4C3BD" stroke="#fcfcfb" stroke-width="2"/><circle cx="163.33333333333331" cy="157.5" r="4" fill="#C4C3BD" stroke="#fcfcfb" stroke-width="2"/><circle cx="246.66666666666666" cy="157.5" r="4" fill="#C4C3BD" stroke="#fcfcfb" stroke-width="2"/><circle cx="413.3333333333333" cy="203.5" r="4" fill="#C4C3BD" stroke="#fcfcfb" stroke-width="2"/><circle cx="229.55703666666523" cy="272.5" r="7" fill="#B8144D" stroke="#fcfcfb" stroke-width="2"/><text x="241.55703666666523" y="262.5" font-size="11" fill="#0b0b0b" text-anchor="start" font-weight="600">Jev: 15 (latencia 269 ms)</text><circle cx="140.0431363888889" cy="280.1666666666667" r="7" fill="#2F4F96" stroke="#fcfcfb" stroke-width="2"/><text x="152.0431363888889" y="300.1666666666667" font-size="11" fill="#0b0b0b" text-anchor="start" font-weight="600">Laya: 13 (latencia 108 ms)</text><text x="413.3333333333333" y="191.5" font-size="11" fill="#52514e" text-anchor="end" font-weight="400">Oráculo con retardo</text>
+<g transform="translate(24,60)"><rect width="12" height="12" rx="3" fill="#C4C3BD"/><text x="18" y="10" font-size="12" fill="#52514e" text-anchor="start" font-weight="400">Oráculo con retardo</text></g>
+<g transform="translate(175.8,60)"><rect width="12" height="12" rx="3" fill="#B8144D"/><text x="18" y="10" font-size="12" fill="#52514e" text-anchor="start" font-weight="400">Jev 1.13</text></g>
+<g transform="translate(259.4,60)"><rect width="12" height="12" rx="3" fill="#D9631E"/><text x="18" y="10" font-size="12" fill="#52514e" text-anchor="start" font-weight="400">Clef (27B)</text></g>
+<g transform="translate(355.4,60)"><rect width="12" height="12" rx="3" fill="#1F8FA6"/><text x="18" y="10" font-size="12" fill="#52514e" text-anchor="start" font-weight="400">Clef-Flash (9B)</text></g>
+<g transform="translate(482.4,60)"><rect width="12" height="12" rx="3" fill="#2F4F96"/><text x="18" y="10" font-size="12" fill="#52514e" text-anchor="start" font-weight="400">Laya (local)</text></g>
+<line x1="70" x2="640" y1="360" y2="360" stroke="#e6e5e1" stroke-width="1"/>
+<text x="62" y="363.5" font-size="10" fill="#8a8984" text-anchor="end" font-weight="400">0</text>
+<line x1="70" x2="640" y1="273.333" y2="273.333" stroke="#e6e5e1" stroke-width="1"/>
+<text x="62" y="276.833" font-size="10" fill="#8a8984" text-anchor="end" font-weight="400">15</text>
+<line x1="70" x2="640" y1="186.667" y2="186.667" stroke="#e6e5e1" stroke-width="1"/>
+<text x="62" y="190.167" font-size="10" fill="#8a8984" text-anchor="end" font-weight="400">30</text>
+<line x1="70" x2="640" y1="100" y2="100" stroke="#e6e5e1" stroke-width="1"/>
+<text x="62" y="103.5" font-size="10" fill="#8a8984" text-anchor="end" font-weight="400">45</text>
+<text x="70" y="378" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="400">0</text>
+<text x="165" y="378" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="400">150</text>
+<text x="260" y="378" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="400">300</text>
+<text x="355" y="378" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="400">450</text>
+<text x="450" y="378" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="400">600</text>
+<text x="545" y="378" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="400">750</text>
+<text x="640" y="378" font-size="10" fill="#8a8984" text-anchor="middle" font-weight="400">900</text>
+<text x="355" y="400" font-size="11" fill="#52514e" text-anchor="middle" font-weight="400">Latencia de la decisión (ms, mediana)</text>
+<text x="18" y="230" font-size="11" fill="#52514e" text-anchor="middle" font-weight="400" transform="rotate(-90 18 230)">Carriles cruzados (mejor partida)</text>
+<polyline points="70,169.333 165,169.333 260,186.667 450,186.667" fill="none" stroke="#C4C3BD" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="70" cy="169.333" r="3.6" fill="#C4C3BD" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="165" cy="169.333" r="3.6" fill="#C4C3BD" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="260" cy="186.667" r="3.6" fill="#C4C3BD" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="450" cy="186.667" r="3.6" fill="#C4C3BD" stroke="#ffffff" stroke-width="1.5"/>
+<circle cx="236.567" cy="273.333" r="7" fill="#B8144D" stroke="#ffffff" stroke-width="1.5"/>
+<text x="248.567" y="259.333" font-size="11" fill="#0b0b0b" text-anchor="start" font-weight="600">Jev: 15 carriles (263 ms)</text>
+<circle cx="363.867" cy="175.111" r="7" fill="#D9631E" stroke="#ffffff" stroke-width="1.5"/>
+<text x="375.867" y="161.111" font-size="11" fill="#0b0b0b" text-anchor="start" font-weight="600">Clef: 32 carriles (464 ms)</text>
+<circle cx="235.3" cy="261.778" r="7" fill="#1F8FA6" stroke="#ffffff" stroke-width="1.5"/>
+<line x1="235.3" x2="247.3" y1="254.778" y2="227.778" stroke="#52514e" stroke-width="0.8"/>
+<text x="247.3" y="231.778" font-size="11" fill="#0b0b0b" text-anchor="start" font-weight="600">Clef-Flash: 17 carriles (261 ms)</text>
+<circle cx="246.7" cy="331.111" r="7" fill="#2F4F96" stroke="#ffffff" stroke-width="1.5"/>
+<text x="258.7" y="317.111" font-size="11" fill="#0b0b0b" text-anchor="start" font-weight="600">Laya: 5 carriles (279 ms)</text>
 </svg>

@@ -15,6 +15,8 @@ import { accuracy, auroc, brier, cascade, confusion, coverageCurve, ece, majorit
 import { describeRoad, RoadEngine } from "../src/lib/carretera/engine";
 import { mapRoadAction } from "../src/lib/carretera/policy";
 import { packAnswers } from "../src/lib/ai/http";
+import { choiceConfidence, scoreConfidence, withTypesafeConfidence } from "../src/lib/ai/confidence";
+import { byPilot, isModelPilot, MODEL_PILOTS } from "../src/lib/ai/pilots";
 
 describe("Tetris", () => {
   it("deduplicates O placements by resulting board", () => {
@@ -86,6 +88,21 @@ describe("New benchmarks", () => {
     expect(buildInput("bandeja", { itemId: "missing" })).toBeNull();
     expect(buildInput("carretera", { facts: { lane: -1, distance: .2, speed: .1, nearestOffset: .2 } })).toBeNull();
   });
+  it("knows the four model pilots and nothing else", () => {
+    expect(MODEL_PILOTS).toEqual(["jev", "clef", "clef-flash", "laya"]);
+    expect(["jev", "clef-flash", "laya"].every(isModelPilot)).toBe(true);
+    expect(isModelPilot("human")).toBe(false);
+    expect(Object.keys(byPilot(() => 0))).toEqual([...MODEL_PILOTS]);
+  });
+  it("rescales Clef's top probability to TypeSafe's confidence", () => {
+    expect(choiceConfidence([.6, .3, .1])).toBeCloseTo(.4);
+    expect(choiceConfidence([.6, .2, .2])).toBeCloseTo(.4);
+    expect(scoreConfidence([0, .5, .5])).toBeCloseTo(.25);
+    expect(scoreConfidence([.5, 0, .5])).toBeCloseTo(0);
+    const answers = withTypesafeConfidence({ dept: { type: "choice", choice: "a", confidence: .5, probabilities: { a: .5, b: .5 } }, spam: { type: "noul", noul: .7 } });
+    expect(answers.dept).toMatchObject({ choice: "a", confidence: 0 });
+    expect(answers.spam).toEqual({ type: "noul", noul: .7 });
+  });
   it("packs both existing Tetris and dataset answer shapes", () => {
     expect(packAnswers({ playable_well: { choice: "p0", confidence: .8, probabilities: { p0: .8 } } }).playable_well?.choice).toBe("p0");
     expect(packAnswers({ spam: { noul: .7 } }, { spam: { type: "noul" } }).spam).toEqual({ type: "noul", noul: .7 });
@@ -111,13 +128,14 @@ describe("New benchmarks", () => {
   });
   it("escalates only uncertain cases and counts human review separately", () => {
     const result = cascade([
-      { laya: { predicted: "a", truth: "a", confidence: .9 }, layaMs: 100 },
-      { laya: { predicted: "b", truth: "a", confidence: .4 }, jev: { predicted: "a", truth: "a", confidence: .8 }, layaMs: 100, jevMs: 200, jevCostUsd: .01 },
-      { laya: { predicted: "b", truth: "a", confidence: .3 }, jev: { predicted: "b", truth: "a", confidence: .2 }, layaMs: 100, jevMs: 200 },
+      { first: { predicted: "a", truth: "a", confidence: .9 }, firstMs: 100, firstCostUsd: .001 },
+      { first: { predicted: "b", truth: "a", confidence: .4 }, jev: { predicted: "a", truth: "a", confidence: .8 }, firstMs: 100, firstCostUsd: .001, jevMs: 200, jevCostUsd: .01 },
+      { first: { predicted: "b", truth: "a", confidence: .3 }, jev: { predicted: "b", truth: "a", confidence: .2 }, firstMs: 100, jevMs: 200 },
     ], .7, .7);
-    expect([result.laya, result.jev, result.human]).toEqual([1, 1, 1]);
+    expect([result.first, result.jev, result.human]).toEqual([1, 1, 1]);
     expect(result.automatedAccuracy).toBe(1);
     expect(result.meanModelLatencyMs).toBeCloseTo(700 / 3);
+    expect(result.costUsd).toBeCloseTo(.012);
   });
   it("describes the road in words and lets only the model's answers pick the hop", () => {
     const road = new RoadEngine(); road.start(5);

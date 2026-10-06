@@ -2,7 +2,8 @@
 
 import { cascade } from "@/lib/bench/metrics";
 import { formatMs, formatUsd } from "@/lib/ai/pricing";
-import { DEPT_LABEL, type CascadaTicket } from "@/hooks/useCascadaRun";
+import { DEPT_LABEL, type CascadaTicket, type FirstPilot } from "@/hooks/useCascadaRun";
+import { PILOT_COLOR, PILOT_LABEL } from "@/lib/ai/pilots";
 
 type Summary = ReturnType<typeof cascade>;
 
@@ -29,11 +30,11 @@ function sentence(text: string) {
   return cut.length > 140 ? `${cut.slice(0, 137).trim()}…` : cut;
 }
 
-function Example({ item, onSelect }: { item: CascadaTicket; onSelect: (id: string) => void }) {
+function Example({ item, label, onSelect }: { item: CascadaTicket; label: string; onSelect: (id: string) => void }) {
   const n = item.ticket.id.replace("ticket-", "");
-  const who = item.station === "laya" ? "Laya" : item.station === "jev" ? "Jev" : "Humano";
-  const pred = item.station === "laya" ? item.laya.predicted : item.jev?.predicted;
-  const conf = item.station === "laya" ? item.laya.confidence : item.jev?.confidence ?? 0;
+  const who = item.station === "first" ? label : item.station === "jev" ? "Jev" : "Humano";
+  const pred = item.station === "first" ? item.first.predicted : item.jev?.predicted;
+  const conf = item.station === "first" ? item.first.confidence : item.jev?.confidence ?? 0;
   return (
     <button type="button" onClick={() => onSelect(item.ticket.id)} className="w-full min-w-0 rounded-md border border-line bg-white/3 px-3 py-2.5 text-left hover:border-white/25">
       <p className="text-[11px] text-muted">{n} · {who} · {DEPT_LABEL[String(pred)] ?? (pred == null ? "revisión" : String(pred))} {Math.round(conf * 100)}% · era {DEPT_LABEL[item.ticket.department]}</p>
@@ -43,14 +44,14 @@ function Example({ item, onSelect }: { item: CascadaTicket; onSelect: (id: strin
   );
 }
 
-function Card({ title, items, empty, onSelect }: { title: string; items: CascadaTicket[]; empty: string; onSelect: (id: string) => void }) {
+function Card({ title, label, items, empty, onSelect }: { title: string; label: string; items: CascadaTicket[]; empty: string; onSelect: (id: string) => void }) {
   return (
     <div className="min-w-0 rounded-lg border border-line bg-white/3 p-4">
       <h4 className="text-sm font-medium">{title}</h4>
       <p className="mt-1 text-xs text-muted">{items.length ? `${items.length} ejemplo${items.length === 1 ? "" : "s"}` : empty}</p>
       {items.length > 0 && (
         <ul className="mt-3 space-y-2">
-          {items.map(item => <li key={item.ticket.id}><Example item={item} onSelect={onSelect} /></li>)}
+          {items.map(item => <li key={item.ticket.id}><Example item={item} label={label} onSelect={onSelect} /></li>)}
         </ul>
       )}
     </div>
@@ -58,6 +59,7 @@ function Card({ title, items, empty, onSelect }: { title: string; items: Cascada
 }
 
 export function CascadeReport({
+  first,
   items,
   summary,
   failures,
@@ -67,6 +69,7 @@ export function CascadeReport({
   baselineAccuracy,
   onSelect,
 }: {
+  first: FirstPilot;
   items: CascadaTicket[];
   summary: Summary;
   failures: CascadaTicket[];
@@ -76,6 +79,7 @@ export function CascadeReport({
   baselineAccuracy: number | null;
   onSelect: (id: string) => void;
 }) {
+  const label = PILOT_LABEL[first];
   const n = items.length;
   const saved = n - summary.human;
   const wins = items.filter(item => item.station !== "human" && item.finalCorrect).slice(0, 5);
@@ -87,7 +91,7 @@ export function CascadeReport({
   return (
     <div className="min-w-0 space-y-4">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Value label="Resueltos por Laya" value={share(summary.laya, n)} />
+        <Value label={`Resueltos por ${label}`} value={share(summary.first, n)} />
         <Value label="Resueltos por Jev" value={share(summary.jev, n)} />
         <Value label="A revisión humana" value={share(summary.human, n)} />
         <Value label="Acierto automatizado" value={summary.automated ? pct(summary.automatedAccuracy, true) : "—"} note={n ? `Acierto final estimado ${pct(summary.estimatedFinalAccuracy, true)} si la persona no falla` : undefined} />
@@ -98,7 +102,7 @@ export function CascadeReport({
           <div className="min-w-0">
             <p className="eyebrow">Cascada / {n || "—"} tickets</p>
             <p className="metric mt-3 text-xl wrap-break-word">{n ? formatUsd(summary.costUsd) : "—"} · {n ? formatMs(summary.meanModelLatencyMs) : "—"} / ticket</p>
-            <p className="mt-2 text-xs text-muted">Acierto final estimado {n ? pct(summary.estimatedFinalAccuracy, true) : "—"} si la revisión humana es perfecta. Tiempo y coste humano no incluidos. El coste de Jev se suma también en los tickets que luego van a una persona.</p>
+            <p className="mt-2 text-xs text-muted">Acierto final estimado {n ? pct(summary.estimatedFinalAccuracy, true) : "—"} si la revisión humana es perfecta. Tiempo y coste humano no incluidos. Cuenta lo que cobra el primer escalón en todos los tickets y lo de Jev en los que le llegan, también si luego van a una persona.</p>
           </div>
           <div className="min-w-0">
             <p className="eyebrow">Todo Jev / {jevRows.length || "—"} tickets</p>
@@ -112,8 +116,8 @@ export function CascadeReport({
           <h3 className="text-xl font-semibold">Qué ha pasado</h3>
           <p className="mt-2 text-sm text-muted">{headline}</p>
           <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <Card title="Resuelto bien en Laya/Jev" items={wins} empty="Ningún ticket se quedó en automático con acierto." onSelect={onSelect} />
-            <Card title="Falló con alta confianza" items={misses} empty="En este umbral no hay fallos de alta confianza." onSelect={onSelect} />
+            <Card title={`Resuelto bien en ${label}/Jev`} label={label} items={wins} empty="Ningún ticket se quedó en automático con acierto." onSelect={onSelect} />
+            <Card title="Falló con alta confianza" label={label} items={misses} empty="En este umbral no hay fallos de alta confianza." onSelect={onSelect} />
           </div>
         </section>
       )}
@@ -123,24 +127,25 @@ export function CascadeReport({
 
 type Strategy = { key: string; label: string; hint: string; correct: number; wrong: number; human: number; n: number; costUsd: number | null; ms: number | null; color: string };
 
-export function CascadeVerdict({ items, summary, thresholdA, thresholdB }: { items: CascadaTicket[]; summary: Summary; thresholdA: number; thresholdB: number }) {
+export function CascadeVerdict({ first, items, summary, thresholdA, thresholdB }: { first: FirstPilot; items: CascadaTicket[]; summary: Summary; thresholdA: number; thresholdB: number }) {
+  const label = PILOT_LABEL[first];
   const n = items.length;
   if (!n) return null;
   const withJev = items.filter(item => item.jev);
   const mean = (values: number[]) => values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
-  const jevCalls = items.filter(item => item.laya.confidence < thresholdA && item.jev).length;
+  const jevCalls = items.filter(item => item.first.confidence < thresholdA && item.jev).length;
   const rows: Strategy[] = [
-    { key: "laya", label: "Solo Laya", hint: "Laya decide los 60", correct: items.filter(item => item.layaCorrect).length, wrong: items.filter(item => !item.layaCorrect).length, human: 0, n, costUsd: 0, ms: mean(items.map(item => item.layaMs)), color: "var(--laya)" },
+    { key: "first", label: `Solo ${label}`, hint: `${label} decide los ${n}`, correct: items.filter(item => item.firstCorrect).length, wrong: items.filter(item => !item.firstCorrect).length, human: 0, n, costUsd: items.reduce((sum, item) => sum + item.firstCostUsd, 0), ms: mean(items.map(item => item.firstMs)), color: PILOT_COLOR[first] },
     { key: "jev", label: "Solo Jev", hint: withJev.length === n ? "Jev decide los 60" : `Jev en ${withJev.length} tickets`, correct: withJev.filter(item => item.jevCorrect).length, wrong: withJev.filter(item => item.jevCorrect === false).length, human: 0, n: withJev.length, costUsd: withJev.length ? withJev.reduce((sum, item) => sum + (item.jevCostUsd ?? 0), 0) : null, ms: mean(withJev.map(item => item.jevMs ?? 0)), color: "var(--accent-hi)" },
     { key: "cascade", label: "Cascada", hint: `Jev en ${jevCalls} · persona en ${summary.human}`, correct: items.filter(item => item.station !== "human" && item.finalCorrect).length, wrong: items.filter(item => item.station !== "human" && !item.finalCorrect).length, human: summary.human, n, costUsd: summary.costUsd, ms: summary.meanModelLatencyMs, color: "var(--ok)" },
   ];
   const [, jev, cascadeRow] = rows;
   const saving = jev.costUsd ? 1 - (cascadeRow.costUsd ?? 0) / jev.costUsd : null;
   const verdict = !withJev.length
-    ? "Falta la pasada de Jev: la comparación solo tiene a Laya."
+    ? `Falta la pasada de Jev: la comparación solo tiene a ${label}.`
     : cascadeRow.wrong <= jev.wrong
       ? `Compensa: con A ${Math.round(thresholdA * 100)}% y B ${Math.round(thresholdB * 100)}% la cascada comete ${cascadeRow.wrong} error${cascadeRow.wrong === 1 ? "" : "es"}, no más que Jev solo (${jev.wrong}), y llama a Jev en ${jevCalls} de ${n} tickets${saving !== null ? `: ${Math.round(saving * 100)}% menos coste de Jev` : ""}.`
-      : `Ahorra ${saving !== null ? `${Math.round(saving * 100)}% del coste de Jev` : "llamadas a Jev"} a cambio de ${cascadeRow.wrong - jev.wrong} error${cascadeRow.wrong - jev.wrong === 1 ? "" : "es"} más que Jev solo (${cascadeRow.wrong} frente a ${jev.wrong}). ${cascadeRow.wrong > 0 && items.some(item => item.station === "laya" && !item.layaCorrect) ? "Los errores extra son de Laya con confianza alta: sube A para mandar más tickets a Jev." : "Sube B para mandar a una persona los casos dudosos de Jev."}`;
+      : `Ahorra ${saving !== null ? `${Math.round(saving * 100)}% del coste de Jev` : "llamadas a Jev"} a cambio de ${cascadeRow.wrong - jev.wrong} error${cascadeRow.wrong - jev.wrong === 1 ? "" : "es"} más que Jev solo (${cascadeRow.wrong} frente a ${jev.wrong}). ${cascadeRow.wrong > 0 && items.some(item => item.station === "first" && !item.firstCorrect) ? `Los errores extra son de ${label} con confianza alta: sube A para mandar más tickets a Jev.` : "Sube B para mandar a una persona los casos dudosos de Jev."}`;
   const most = Math.max(...rows.map(row => row.n), 1);
   return (
     <section className="panel min-w-0 overflow-hidden p-5 sm:p-6" aria-labelledby="cascade-verdict">
@@ -163,7 +168,7 @@ export function CascadeVerdict({ items, summary, thresholdA, thresholdB }: { ite
         <span><i className="mr-1.5 inline-block h-2 w-2 rounded-sm bg-ok/70" />aciertos de departamento</span>
         <span><i className="mr-1.5 inline-block h-2 w-2 rounded-sm bg-bad/80" />errores que llegan al cliente</span>
         <span><i className="mr-1.5 inline-block h-2 w-2 rounded-sm bg-warn/70" />enviados a una persona</span>
-        <span>Coste: total de Jev en los {n} tickets. Tiempo: modelos, sin la revisión humana.</span>
+        <span>Coste: lo que cobran los modelos en los {n} tickets. Tiempo: modelos, sin la revisión humana.</span>
       </p>
     </section>
   );

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { JevMark } from "@/components/brand/JevMark";
 import { useHealth } from "@/hooks/useHealth";
+import { MODEL_PILOTS, PILOT_LABEL } from "@/lib/ai/pilots";
 
 const groups = [
   { label: "Juegos", links: [{ href: "/flappy", label: "Flappy" }, { href: "/tetris", label: "Tetris" }, { href: "/carretera", label: "Carretera" }] },
@@ -43,9 +44,8 @@ export function SiteNav() {
           </div>;
         })}
       </nav>
-      <div className="flex items-center gap-3 sm:border-l sm:border-line sm:pl-5">
-        <Status label="Jev" ok={health.jev.ok} detail={health.jev.detail} />
-        <Status label="Laya" ok={health.laya.ok} detail={health.laya.detail} />
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:border-l sm:border-line sm:pl-5">
+        {MODEL_PILOTS.map(pilot => <Status key={pilot} label={PILOT_LABEL[pilot]} ok={health[pilot].ok} detail={health[pilot].detail} />)}
       </div>
     </div>
   </header>;

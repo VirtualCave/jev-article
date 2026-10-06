@@ -2,11 +2,9 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { fetchHealth, type Health } from "@/lib/ai/client";
+import { byPilot, PILOT_LABEL } from "@/lib/ai/pilots";
 
-const initial: Health = {
-  jev: { ok: false, detail: "Comprobando Jev" },
-  laya: { ok: false, detail: "Comprobando Laya" },
-};
+const initial: Health = byPilot(pilot => ({ ok: false, detail: `Comprobando ${PILOT_LABEL[pilot]}` }));
 const Context = createContext<Health>(initial);
 
 export function HealthProvider({ children }: { children: React.ReactNode }) {

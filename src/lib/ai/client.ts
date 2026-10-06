@@ -1,8 +1,9 @@
 import type { DecideResult } from "./compose";
+import { byPilot, type ModelPilot } from "./pilots";
 import type { DecisionQuestions, DecisionState } from "./questions";
 
 export async function requestDecision(
-  player: "jev" | "laya",
+  player: ModelPilot,
   state: DecisionState,
   questions: DecisionQuestions,
   signal?: AbortSignal,
@@ -28,25 +29,14 @@ export async function requestDecision(
   return data as DecideResult;
 }
 
-export type Health = {
-  jev: { ok: boolean; detail: string };
-  laya: { ok: boolean; detail: string };
-};
+export type Health = Record<ModelPilot, { ok: boolean; detail: string }>;
 
 export async function fetchHealth(): Promise<Health> {
   try {
     const res = await fetch("/api/health");
-    if (!res.ok) {
-      return {
-        jev: { ok: false, detail: "Health fallido" },
-        laya: { ok: false, detail: "Health fallido" },
-      };
-    }
+    if (!res.ok) return byPilot(() => ({ ok: false, detail: "Health fallido" }));
     return (await res.json()) as Health;
   } catch {
-    return {
-      jev: { ok: false, detail: "Sin conexion" },
-      laya: { ok: false, detail: "Sin conexion" },
-    };
+    return byPilot(() => ({ ok: false, detail: "Sin conexion" }));
   }
 }

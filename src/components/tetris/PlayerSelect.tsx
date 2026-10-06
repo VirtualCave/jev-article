@@ -1,9 +1,12 @@
-import { Cpu, HardDrives, Keyboard } from "@phosphor-icons/react";
+import { Cloud, Cpu, HardDrives, Keyboard, Lightning } from "@phosphor-icons/react";
 import { motion, useReducedMotion } from "motion/react";
+import type { ModelPilot } from "../../lib/ai/pilots";
 import type { PlayerKind } from "../../lib/tetris/types";
 
 const OPTIONS: { id: PlayerKind; label: string; icon: typeof Cpu }[] = [
   { id: "jev", label: "Jev", icon: Cpu },
+  { id: "clef", label: "Clef", icon: Cloud },
+  { id: "clef-flash", label: "Clef-Flash", icon: Lightning },
   { id: "laya", label: "Laya", icon: HardDrives },
   { id: "human", label: "Tu", icon: Keyboard },
 ];
@@ -17,14 +20,14 @@ export function PlayerSelect({
   side: "left" | "right";
   value: PlayerKind;
   onChange: (player: PlayerKind) => void;
-  availability: { jev: boolean; laya: boolean };
+  availability: Record<ModelPilot, boolean>;
 }) {
   const reduce = useReducedMotion();
   return (
     <div
       role="radiogroup"
       aria-label={side === "left" ? "Jugador izquierdo" : "Jugador derecho"}
-      className="grid grid-cols-3 gap-1 rounded-[4px] border border-line bg-bg p-1"
+      className="grid grid-cols-3 gap-1 rounded-[4px] border border-line bg-bg p-1 sm:grid-cols-5"
     >
       {OPTIONS.map((opt) => {
         const active = value === opt.id;

@@ -3,6 +3,7 @@
 import { ArrowClockwise, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Shuffle } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useHealth } from "@/hooks/useHealth";
+import type { ModelPilot } from "@/lib/ai/pilots";
 import { formatMs, formatUsd } from "@/lib/ai/pricing";
 import type { BenchResult } from "@/lib/bench/server";
 import { describeRoad, IDLE_LIMIT_S, RoadEngine, type EndCause, type RoadAction } from "@/lib/carretera/engine";
@@ -10,10 +11,12 @@ import { mapRoadMove } from "@/lib/carretera/policy";
 import { RoadView, VIEW_H, VIEW_W, type RecordFlag } from "@/lib/carretera/render";
 import { addHistory } from "@/lib/history";
 
-type Pilot = "human" | "laya" | "jev";
+type Pilot = "human" | ModelPilot;
 type Run = { pilot: Pilot; seed: number; crossed: number; row: number; cause: EndCause | "stop"; seconds: number; decisions: number; latencyMs: number | null; costUsd: number; at: string };
 const PILOTS: { id: Pilot; label: string; color: string }[] = [
   { id: "jev", label: "Jev", color: "#e0336f" },
+  { id: "clef", label: "Clef", color: "#f6821f" },
+  { id: "clef-flash", label: "Clef-Flash", color: "#46c8e8" },
   { id: "laya", label: "Laya", color: "#9aa5ff" },
   { id: "human", label: "Humano", color: "#f2b544" },
 ];
@@ -235,7 +238,7 @@ export function CarreteraGame() {
             <div className="absolute inset-0 grid place-items-center rounded-lg bg-black/45 p-4 text-center text-white">
               <div>
                 {ended ? <>
-                  <p className="text-sm text-white/75">{ended.pilot === "human" ? "Humano" : ended.pilot === "jev" ? "Jev" : "Laya"} · {CAUSE[ended.cause]}</p>
+                  <p className="text-sm text-white/75">{PILOTS.find(option => option.id === ended.pilot)?.label} · {CAUSE[ended.cause]}</p>
                   <p className="metric mt-1 text-5xl">{ended.crossed}</p>
                   <p className="text-sm text-white/75">{ended.crossed === 1 ? "carril cruzado" : "carriles cruzados"} en {ended.seconds.toFixed(1)} s</p>
                   <div className="pointer-events-auto mt-4 flex justify-center gap-2">

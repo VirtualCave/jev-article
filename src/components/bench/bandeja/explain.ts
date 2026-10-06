@@ -362,7 +362,7 @@ export function bandejaNarrative(name: string, rows: TicketVerdict[], stats: Pil
     lines.push("Esta pasada mide tres pulsaciones por ticket, no una llamada con tres preguntas. El coste humano no se estima.");
   } else if (human && human.n) {
     const lead = stats.department === human.department ? "empata a la persona en departamento" : stats.department > human.department ? `gana a la persona en departamento (${pct(stats.department, true)} frente a ${pct(human.department, true)})` : `va por detrás de la persona en departamento (${pct(stats.department, true)} frente a ${pct(human.department, true)})`;
-    lines.push(`Frente a la persona (${human.n} tickets): ${lead}. El reloj humano mide tres pulsaciones; el del modelo, una sola llamada. El coste humano no se estima. ${name === "Jev" ? "Jev sale a coste por 1.000 tickets; Laya no factura tokens en esta app." : "Laya no tiene coste de tokens aquí."}`);
+    lines.push(`Frente a la persona (${human.n} tickets): ${lead}. El reloj humano mide tres pulsaciones; el del modelo, una sola llamada. El coste humano no se estima. ${name === "Laya" ? "Laya corre en local y no tiene coste de tokens." : `${name} sale a coste por 1.000 tickets, solo por los tokens de entrada.`}`);
   } else {
     lines.push("Todavía no hay una pasada humana completa para comparar pulso a pulso. El teclado está en la carpeta Persona (1/2/3, 0-3, S/N).");
   }

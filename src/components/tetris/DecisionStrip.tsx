@@ -36,7 +36,7 @@ export function MoveMeter({
           ? `${formatUsd(trace.usage.costUsd)}${trace.usage.input_tokens != null ? ` · ${trace.usage.input_tokens} tok` : ""}`
           : missing;
   const matchCost =
-    player === "jev"
+    player !== "laya"
       ? spend.calls > 0
         ? `${formatUsd(spend.costUsd)}${spend.inputTokens > 0 ? ` · ${spend.inputTokens} tok` : ""}`
         : missing
